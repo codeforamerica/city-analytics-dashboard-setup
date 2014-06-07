@@ -14,17 +14,31 @@ from flask import Flask, request, session, redirect, render_template, jsonify, s
 from requests import get, post, Session
 import oauth2
 
+display_screen_tarball_url = 'http://github.com/codeforamerica/display-screen/tarball/master/'
+
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
 google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
 
+google_analytics_properties_url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties'
+
 heroku_authorize_url = 'https://id.heroku.com/oauth/authorize'
 heroku_access_token_url = 'https://id.heroku.com/oauth/token'
+
+heroku_app_setup_url = 'https://api.heroku.com/app-setups'
+heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
+heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
 
 app = Flask(__name__)
 app.secret_key = 'fake'
 
 @app.route("/")
 def index():
+    scheme, host = get_scheme(request), request.host
+    
+    # Force SSL when running on Heroku.
+    if (scheme, host) == ('http', 'dfd-dashboard-setup.herokuapp.com'):
+        return redirect('https://dfd-dashboard-setup.herokuapp.com')
+
     return render_template('index.html')
 
 @app.route('/authorize-google', methods=['POST'])
@@ -58,8 +72,8 @@ def callback_google():
     # '{"error":{"errors":[{"domain":"usageLimits","reason":"accessNotConfigured","message":"Access Not Configured. Please use Google Developers Console to activate the API for your project."}],"code":403,"message":"Access Not Configured. Please use Google Developers Console to activate the API for your project."}}'
     # https://code.google.com/apis/console/ > APIs & Auth > Analytics API "On"
     #
-    url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties'
-    response = json.loads(get(url, params={'access_token': access_token}).content)
+    response = json.loads(get(google_analytics_properties_url,
+                              params={'access_token': access_token}).content)
     
     if 'items' not in response:
         return jsonify(response)
@@ -90,10 +104,8 @@ def prepare_app():
                CLIENT_SECRET=request.form.get('client_secret'),
                REFRESH_TOKEN=request.form.get('refresh_token'))
     
-    url = 'http://github.com/codeforamerica/display-screen/tarball/master/'
-    app = dict(name='Display Screen', env=env)
-    
-    session['tarfile'] = prepare_tarball(url, app)
+    session['tarfile'] = prepare_tarball(display_screen_tarball_url,
+                                         dict(name='Display Screen', env=env))
     
     client_id, _, redirect_uri = heroku_client_info(request)
     
@@ -111,7 +123,6 @@ def get_tarball(filename):
     
     return send_file(filepath)
 
-@app.route('/callback')
 @app.route('/callback-heroku')
 def callback_heroku():
     '''
@@ -130,8 +141,9 @@ def callback_heroku():
     try:
         tar = basename(session['tarfile'])
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar)
+        app_name = create_app(access_token, url)
         
-        return create_app(access_token, url)
+        return redirect(heroku_app_activity_template.format(app_name))
     
     finally:
         os.remove(session['tarfile'])
@@ -149,20 +161,14 @@ def google_client_info(request):
     '''
     scheme, host = get_scheme(request), request.host
     
-    if (scheme, host) == ('http', '127.0.0.1:5000'):
-        id, secret = "422651909980-a35en10nc91si1aad64laoav4besih1m.apps.googleusercontent.com", "g9nDZDifVWflKbydh12sbFH7"
-
-    elif (scheme, host) == ('https', '127.0.0.1:5000'):
-        id, secret = "422651909980-9covddi3im2441kaf57g4k0ev7hqupfi.apps.googleusercontent.com", "HyQpjg-Oak9eBKLVkBvEVbLd"
-
-    elif (scheme, host) == ('http', 'dfd-dashboard-setup.herokuapp.com'):
-        id, secret = "422651909980-kb46m28v262ml8gu30fb9294agi3v845.apps.googleusercontent.com", "P8HR9uZ15RUFBDSg0wq_bE6w"
+    if (scheme, host) == ('http', 'localhost:5000'):
+        id, secret = "422651909980-7stoc5hn9nfrv9l9otrnf8tjei0lm68q.apps.googleusercontent.com", "qZ511l73AqF0K8sX6g2wSTMG"
 
     elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
         id, secret = "422651909980-cm38qtgra61jub0c9uiis3qoc2lhasse.apps.googleusercontent.com", "qk2SIzRSn-_6MZpNdhUGQnJL"
 
     else:
-        raise Exception()
+        raise Exception('You know nothing of {0}://{1}, Google'.format(scheme, host))
 
     return id, secret, '{0}://{1}/callback-google'.format(scheme, host)
 
@@ -171,14 +177,14 @@ def heroku_client_info(request):
     '''
     scheme, host = get_scheme(request), request.host
     
-    if (scheme, host) == ('https', '127.0.0.1:5000'):
-        id, secret = "7a12d323-b21e-4d40-b9ee-b51c40b5bcc6", "d907bf7e-314c-4f6d-a54c-ed9f85717b23"
+    if (scheme, host) == ('http', 'localhost:5000'):
+        id, secret = "e46e254a-d99e-47c1-83bd-f9bc9854d467", "8cfd15f1-89b6-4516-9650-ce6650c78b4c"
 
     elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
-        id, secret = "5af3b562-9208-450a-bea6-0f356518c962", "4163a555-c5a7-4355-8db7-73a5e4854ebb"
+        id, secret = "e422c58c-aa9d-4fec-8bc2-66c859e2f5df", "9fffa26f-5202-4bce-b139-e4b227690b53"
 
     else:
-        raise Exception()
+        raise Exception('You know nothing of {0}://{1}, Heroku'.format(scheme, host))
 
     return id, secret, '{0}://{1}/callback-heroku'.format(scheme, host)
 
@@ -195,7 +201,7 @@ def prepare_tarball(url, app):
         tar.extractall(dirpath)
         
         if not isdir(rootdir):
-            raise Exception('"%s" is not a directory' % rootdir)
+            raise Exception('"{0}" is not a directory'.format(rootdir))
 
         with open(join(rootdir, 'app.json'), 'w') as out:
             json.dump(app, out)
@@ -219,26 +225,22 @@ def create_app(access_token, source_url):
                'Authorization': 'Bearer {0}'.format(access_token),
                'Accept': 'application/vnd.heroku+json; version=3'}
 
-    posted = client.post('https://api.heroku.com/app-setups',
-                         headers=headers, data=data)
-
+    posted = client.post(heroku_app_setup_url, headers=headers, data=data)
     setup_id = posted.json()['id']
     app_name = posted.json()['app']['name']
 
     while True:
         sleep(1)
-        gotten = client.get('https://api.heroku.com/app-setups/{0}'.format(setup_id),
-                            headers=headers)
+        gotten = client.get(heroku_app_setups_template.format(setup_id), headers=headers)
+        setup = gotten.json()
     
-        if gotten.json()['status'] == 'failed':
-            return jsonify(dict(setup=gotten.json(), source=source_url))
+        if setup['status'] == 'failed':
+            raise Exception('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
 
-        build_id = gotten.json()['build']['id']
-
-        if build_id is not None:
+        if setup['build']['id'] is not None:
             break
 
-    return redirect('https://dashboard.heroku.com/apps/{0}/activity'.format(app_name))
+    return app_name
 
 if __name__ == '__main__':
     if sys.argv[-1] == 'ssl':
@@ -249,4 +251,4 @@ if __name__ == '__main__':
     else:
         context = None
 
-    app.run(host='127.0.0.1', port=5000, debug=True, ssl_context=context)
+    app.run(host='localhost', port=5000, debug=True, ssl_context=context)
