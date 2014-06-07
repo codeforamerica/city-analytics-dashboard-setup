@@ -9,6 +9,11 @@ import oauth2
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
 google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
 
+google_credentials = {
+    ('http', '127.0.0.1:5000'): ("422651909980-a35en10nc91si1aad64laoav4besih1m.apps.googleusercontent.com", "g9nDZDifVWflKbydh12sbFH7"),
+    ('http', 'dfd-dashboard-setup.herokuapp.com'): ("422651909980-kb46m28v262ml8gu30fb9294agi3v845.apps.googleusercontent.com", "P8HR9uZ15RUFBDSg0wq_bE6w"),
+    }
+
 app = Flask(__name__)
 app.secret_key = 'fake'
 
@@ -18,10 +23,9 @@ def index():
 
 @app.route('/authorize-google', methods=['POST'])
 def authorize_google():
-    redirect_uri = '{0}://{1}/callback'.format(request.scheme, request.host)
-    client_id = "656808925171-0db1to95unmk66hkqmnlljhrj8ofj0ce.apps.googleusercontent.com"
-    client_secret = "ZqSrok49lcVh5xyUFJI4cGHf"
     state = str(uuid4())
+    redirect_uri = '{0}://{1}/callback'.format(request.scheme, request.host)
+    client_id, client_secret = google_credentials[(request.scheme, request.host)]
 
     session['provider'] = 'google'
     session['client_id'] = client_id
@@ -77,11 +81,14 @@ def callback_google(client_id, client_secret, code, state, redirect_uri):
     # https://code.google.com/apis/console/ > APIs & Auth > Analytics API "On"
     #
     
-    response = get(url, params={'access_token': access_token})
+    response = json.loads(get(url, params={'access_token': access_token}).content)
+    
+    if 'items' not in response:
+        return jsonify(response)
     
     properties = [
         (item['defaultProfileId'], item['name'], item['websiteUrl'])
-        for item in json.loads(response.content).get('items')
+        for item in response.get('items')
         if item.get('defaultProfileId', False)
         ]
     
