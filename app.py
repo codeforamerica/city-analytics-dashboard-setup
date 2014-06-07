@@ -87,19 +87,10 @@ def callback_google(client_id, client_secret, code, state, redirect_uri):
     
     properties.sort(key=lambda p: p[1].lower())
     
-    return jsonify(dict(poop=properties))
-
-    return render_template('index.html', properties=properties)
-
-    consumer = oauth2.Consumer(client_id, client_secret)
-    token = oauth2.Token(refresh_token, '')
-    client = oauth2.Client(consumer, token)
+    values = dict(client_id=client_id, client_secret=client_secret,
+                  refresh_token=refresh_token, properties=properties)
     
-    return repr(client.request(url, 'GET'))
-    
-    return jsonify(dict(client_id=client_id, client_secret=client_secret,
-                        access_token=access_token, token_type=token_type,
-                        refresh_token=refresh_token))
+    return render_template('index.html', **values)
 
 if __name__ == '__main__':
     app.run(debug=True)

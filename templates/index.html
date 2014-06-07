@@ -83,26 +83,48 @@
 	            <h3>1. Enable the Google Analytics API</h3>
 	            	<p><a href="">Log into the Google Developer Console</a> and enable the Google analytics API</p>
 	            <h3>2. Get all the CLIENT keys you'll need from Google</h3>
-	            	<p>Authorize yourself with Google via this <a href="">OAuth Dance tool</a>. It'll return you to this page with the correct values.</p>
 
-	            	<!-- maybe just change this to a button that says authorized / not authorized, instead of showing the values at all (hidden inputs) -->
-	            	<p><label>Client ID: </label><input /></p>
-		            <p><label>Client Secret: </label><input /></p>
-	            	<p><label>Refresh Token: </label><input /></p>
-	            	
-	            	<form action="/authorize-google" method="POST">
-	            	    <button>Authorize with Google</button>
-	            	</form>
+                {% if client_id and client_secret and refresh_token and properties %}
+                    <table>
+                        <tr>
+                            <td>Client ID</td>
+                            <td>{{ client_id }}</td>
+                        </tr>
+                        <tr>
+                            <td>Client Secret</td>
+                            <td>{{ client_secret }}</td>
+                        </tr>
+                        <tr>
+                            <td>Refresh Token</td>
+                            <td>{{ refresh_token }}</td>
+                        </tr>
+                    </table>
 
+                {% else %}
+                    <p>Authorize yourself with Google via this <a href="">OAuth Dance tool</a>. It'll return you to this page with the correct values.</p>
 
-	            <h3>3. Grab your Analytics ID</h3>
+                    <form action="/authorize-google" method="POST">
+                        <button>Authorize with Google</button>
+                    </form>
+                {% endif %}
 
-	            <!-- If we are able to just poll for this without another auth step, we can just remove this step all together -->
-	            <p><a href="">Log in to Google Analytics</a> with the same email you authorized with above, and retrieve your Google Analytics ID.</p>
-	            <p><label>Put your Google Analytics View ID here: </label><input /></p>
+	            <h3>3. Select your Analytics ID</h3>
 
-	            <!-- Totally up for removing this variable entirely -->
-	            <p><label>And enter the website's URL here: </label><input />
+                {% if properties %}
+                    <select name="property">
+                      {% for (id, name, url) in properties %}
+                        <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
+                      {% endfor %}
+                    </select>
+
+                {% else %}
+                    <!-- If we are able to just poll for this without another auth step, we can just remove this step all together -->
+                    <p><a href="">Log in to Google Analytics</a> with the same email you authorized with above, and retrieve your Google Analytics ID.</p>
+                    <p><label>Put your Google Analytics View ID here: </label><input /></p>
+
+                    <!-- Totally up for removing this variable entirely -->
+                    <p><label>And enter the website's URL here: </label><input />
+                {% endif %}
 	            
 	            <h3>4. Create!</h3>
 	            <p>Now all the fields above are filled out, click the button below to create a new Heroku application with these credentials.</p>
