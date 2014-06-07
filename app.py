@@ -18,7 +18,7 @@ def index():
 
 @app.route('/authorize-google', methods=['POST'])
 def authorize_google():
-    client_id, client_secret, redirect_uri = google_client_info(request.scheme, request.host)
+    client_id, client_secret, redirect_uri = google_client_info(request)
 
     query_string = urlencode(dict(client_id=client_id, redirect_uri=redirect_uri,
                                   scope='https://www.googleapis.com/auth/analytics https://www.googleapis.com/auth/analytics.readonly',
@@ -32,7 +32,7 @@ def callback_google():
     '''
     '''
     code, state = request.args.get('code'), request.args.get('state')
-    client_id, client_secret, redirect_uri = google_client_info(request.scheme, request.host)
+    client_id, client_secret, redirect_uri = google_client_info(request)
     
     data = dict(client_id=client_id, client_secret=client_secret,
                 code=code, redirect_uri=redirect_uri,
@@ -66,9 +66,18 @@ def callback_google():
     
     return render_template('index.html', **values)
 
-def google_client_info(scheme, host):
+def google_client_info(request):
     ''' Return Client ID, secret, and redirect URI for Google OAuth use.
     '''
+    scheme, host = request.scheme, request.host
+    
+    #
+    # The originating protocol of the HTTP request, e.g. https.
+    # https://devcenter.heroku.com/articles/http-routing#heroku-headers
+    #
+    if 'x-forwarded-proto' in request.headers:
+        scheme = request.headers['x-forwarded-proto']
+    
     if (scheme, host) == ('http', '127.0.0.1:5000'):
         id, secret = "422651909980-a35en10nc91si1aad64laoav4besih1m.apps.googleusercontent.com", "g9nDZDifVWflKbydh12sbFH7"
 
