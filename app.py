@@ -1,6 +1,6 @@
 from urllib import urlencode
 from uuid import uuid4
-import json
+import sys, json
 
 from flask import Flask, request, session, redirect, render_template, jsonify
 from requests import get, post
@@ -11,6 +11,7 @@ google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
 
 google_credentials = {
     ('http', '127.0.0.1:5000'): ("422651909980-a35en10nc91si1aad64laoav4besih1m.apps.googleusercontent.com", "g9nDZDifVWflKbydh12sbFH7"),
+    ('https', '127.0.0.1:5000'): ("422651909980-9covddi3im2441kaf57g4k0ev7hqupfi.apps.googleusercontent.com", "HyQpjg-Oak9eBKLVkBvEVbLd"),
     ('http', 'dfd-dashboard-setup.herokuapp.com'): ("422651909980-kb46m28v262ml8gu30fb9294agi3v845.apps.googleusercontent.com", "P8HR9uZ15RUFBDSg0wq_bE6w"),
     }
 
@@ -100,4 +101,12 @@ def callback_google(client_id, client_secret, code, state, redirect_uri):
     return render_template('index.html', **values)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    if sys.argv[-1] == 'ssl':
+        from OpenSSL import SSL
+        context = SSL.Context(SSL.SSLv23_METHOD)
+        context.use_privatekey_file('ssl/server.key')
+        context.use_certificate_file('ssl/server.crt')
+    else:
+        context = None
+
+    app.run(host='127.0.0.1', port=5000, debug=True, ssl_context=context)
