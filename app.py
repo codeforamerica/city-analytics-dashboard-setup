@@ -9,12 +9,6 @@ import oauth2
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
 google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
 
-google_credentials = {
-    ('http', '127.0.0.1:5000'): ("422651909980-a35en10nc91si1aad64laoav4besih1m.apps.googleusercontent.com", "g9nDZDifVWflKbydh12sbFH7"),
-    ('https', '127.0.0.1:5000'): ("422651909980-9covddi3im2441kaf57g4k0ev7hqupfi.apps.googleusercontent.com", "HyQpjg-Oak9eBKLVkBvEVbLd"),
-    ('http', 'dfd-dashboard-setup.herokuapp.com'): ("422651909980-kb46m28v262ml8gu30fb9294agi3v845.apps.googleusercontent.com", "P8HR9uZ15RUFBDSg0wq_bE6w"),
-    }
-
 app = Flask(__name__)
 app.secret_key = 'fake'
 
@@ -24,47 +18,21 @@ def index():
 
 @app.route('/authorize-google', methods=['POST'])
 def authorize_google():
-    state = str(uuid4())
-    redirect_uri = '{0}://{1}/callback'.format(request.scheme, request.host)
-    client_id, client_secret = google_credentials[(request.scheme, request.host)]
+    client_id, client_secret, redirect_uri = google_client_info(request.scheme, request.host)
 
-    session['provider'] = 'google'
-    session['client_id'] = client_id
-    session['client_secret'] = client_secret
-    session['state'] = state
-    
     query_string = urlencode(dict(client_id=client_id, redirect_uri=redirect_uri,
                                   scope='https://www.googleapis.com/auth/analytics https://www.googleapis.com/auth/analytics.readonly',
-                                  state=state, response_type='code',
+                                  state=str(uuid4()), response_type='code',
                                   access_type='offline', approval_prompt='force'))
     
     return redirect(google_authorize_url + '?' + query_string)
 
-@app.route('/callback')
-def callback():
-    callback = '{0}://{1}/callback'.format(request.scheme, request.host)
-
-    if session['provider'] == 'google':
-        args = (session['client_id'], session['client_secret'],
-                request.args.get('code'), request.args.get('state'),
-                callback)
-
-        return callback_google(*args)
-    
-    elif session['provider'] == 'heroku':
-        args = (session['client_id'], session['client_secret'],
-                request.args.get('code'), request.args.get('state'))
-
-        return callback_heroku(*args)
-    
-    else:
-        raise Exception()
-
-def callback_google(client_id, client_secret, code, state, redirect_uri):
+@app.route('/callback-google')
+def callback_google():
     '''
     '''
-    if state != session['state']:
-        raise Exception()
+    code, state = request.args.get('code'), request.args.get('state')
+    client_id, client_secret, redirect_uri = google_client_info(request.scheme, request.host)
     
     data = dict(client_id=client_id, client_secret=client_secret,
                 code=code, redirect_uri=redirect_uri,
@@ -75,13 +43,11 @@ def callback_google(client_id, client_secret, code, state, redirect_uri):
     access_token, token_type = access['access_token'], access['token_type']
     refresh_token = access['refresh_token']
     
-    url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties'
-    
     #
     # '{"error":{"errors":[{"domain":"usageLimits","reason":"accessNotConfigured","message":"Access Not Configured. Please use Google Developers Console to activate the API for your project."}],"code":403,"message":"Access Not Configured. Please use Google Developers Console to activate the API for your project."}}'
     # https://code.google.com/apis/console/ > APIs & Auth > Analytics API "On"
     #
-    
+    url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties'
     response = json.loads(get(url, params={'access_token': access_token}).content)
     
     if 'items' not in response:
@@ -99,6 +65,26 @@ def callback_google(client_id, client_secret, code, state, redirect_uri):
                   refresh_token=refresh_token, properties=properties)
     
     return render_template('index.html', **values)
+
+def google_client_info(scheme, host):
+    ''' Return Client ID, secret, and redirect URI for Google OAuth use.
+    '''
+    if (scheme, host) == ('http', '127.0.0.1:5000'):
+        id, secret = "422651909980-a35en10nc91si1aad64laoav4besih1m.apps.googleusercontent.com", "g9nDZDifVWflKbydh12sbFH7"
+
+    elif (scheme, host) == ('https', '127.0.0.1:5000'):
+        id, secret = "422651909980-9covddi3im2441kaf57g4k0ev7hqupfi.apps.googleusercontent.com", "HyQpjg-Oak9eBKLVkBvEVbLd"
+
+    elif (scheme, host) == ('http', 'dfd-dashboard-setup.herokuapp.com'):
+        id, secret = "422651909980-kb46m28v262ml8gu30fb9294agi3v845.apps.googleusercontent.com", "P8HR9uZ15RUFBDSg0wq_bE6w"
+
+    elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
+        id, secret = "422651909980-cm38qtgra61jub0c9uiis3qoc2lhasse.apps.googleusercontent.com", "qk2SIzRSn-_6MZpNdhUGQnJL"
+
+    else:
+        raise Exception()
+
+    return id, secret, '{0}://{1}/callback-google'.format(scheme, host)
 
 if __name__ == '__main__':
     if sys.argv[-1] == 'ssl':
