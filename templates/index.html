@@ -73,6 +73,7 @@
 		    </section>
 		
 		    <section id="setup">
+		    	<form>
 		        <h2>Setup</h2>
 	            <p>Setup is pretty easy, you can do it right from this page. It makes the following assumptions, however:</p>
 	            <ul>
@@ -81,35 +82,23 @@
 	            </ul>
 	            <h3>1. Get all the CLIENT keys you'll need from Google</h3>
 	            	<p>Authorize yourself with Google via this <a href="">OAuth Dance tool</a>. It'll return you to this page with the correct values.</p>
+	            	<p><label>Client ID: </label><input /></p>
+		            <p><label>Client Secret: </label><input /></p>
+	            	<p><label>Refresh Token: </label><input /></p>
+
 	            <h3>2. Grab your Analytics ID</h3>
-	            <p><a href="">Log in to Google Analytics</a> with the same email you authorized with above, and retrieve your Google Analytics ID</p>
+	            <p><a href="">Log in to Google Analytics</a> with the same email you authorized with above, and retrieve your Google Analytics ID.</p>
+	            <p><label>Put your Google Analytics View ID here: </label><input /></p>
+	            <p><label>And enter the website's URL here: </label><input />
 	            <h3>3. Enable the Google Analytics API</h3>
 	            	<p><a href="">Log into the Google Developer Console</a> and enable the Google analytics API</p>
 	            <h3>4. Create!</h3>
-	            <p>These fields should now be automatically filled out for you, so click "Create" below.</p>
-	            <fieldset>
-	            	<form>
-	            	<ul>
-	            		<li class="field">
-	            			<label>Client ID: </label><input />
-	            		</li>
-	            		<li>
-	            			<label>Client Secret: </label><input />
-	            		</li>
-	            		<li>
-	            			<label>Refresh Token: </label><input />
-	            		</li>
-	            		<li>
-	            			<label>Google Analytics ID: </label><input />
-	            		</li>
-	            		<li>
-	            			<label>Website URL: </label><input />
-	            		</li>
-	            	</ul>
+	            <p>Now all the fields above are filled out, click the create button to create a new Heroku application with these credentials.</p>
+	            
 	            	<input type="submit" value="Create" />
-	            	</form>
-	            </fieldset>
+	            	
 
+	           </form>
 		    </section>
 		    
 		    <section id="uses">
