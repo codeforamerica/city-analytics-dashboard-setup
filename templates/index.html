@@ -108,6 +108,7 @@
                     </form>
                 {% endif %}
 
+	            <form action="/prepare-app" method="POST">
 	            <h3>3. Select your Analytics ID</h3>
 
                 {% if properties %}
@@ -127,11 +128,19 @@
                 {% endif %}
 	            
 	            <h3>4. Create!</h3>
-	            <p>Now all the fields above are filled out, click the button below to create a new Heroku application with these credentials.</p>
+                    <p>Now all the fields above are filled out, click the button below to create a new Heroku application with these credentials.</p>
 	            
-	            	<input type="submit" value="Create" disabled /><!--disabled until the above steps are satisfied-->
+	            	{% if client_id and client_secret and refresh_token and properties %}
+	            	    <input type="hidden" name="client_id" value="{{ client_id }}">
+	            	    <input type="hidden" name="client_secret" value="{{ client_secret }}">
+	            	    <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
+                        <button>Create</button>
+	            	{% endif %}
 	            	
 	            	<!-- I assume it generates a heroku app name, that we should output here -->
+
+	            </form>
+
 	            <h3>5. Congratulations! You've hopefully got a dashboard now!</h3>
 	            <p>Check it out at <a href="">generatedname.herokuapp.com</a></p>
 
