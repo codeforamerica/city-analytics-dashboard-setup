@@ -73,7 +73,7 @@
 		    </section>
 		
 		    <section id="setup">
-		    	<form>
+
 		        <h2>Setup</h2>
 	            <p>Setup is pretty easy, you can do it right from this page. It makes the following assumptions, however:</p>
 	            <ul>
@@ -89,6 +89,10 @@
 	            	<p><label>Client ID: </label><input /></p>
 		            <p><label>Client Secret: </label><input /></p>
 	            	<p><label>Refresh Token: </label><input /></p>
+	            	
+	            	<form action="/authorize-google" method="POST">
+	            	    <button>Authorize with Google</button>
+	            	</form>
 
 
 	            <h3>3. Grab your Analytics ID</h3>
@@ -108,7 +112,7 @@
 	            	<!-- I assume it generates a heroku app name, that we should output here -->
 	            <h3>5. Congratulations! You've hopefully got a dashboard now!</h3>
 	            <p>Check it out at <a href="">generatedname.herokuapp.com</a></p>
-	           </form>
+
 		    </section>
 		    
 		    <section id="uses">
