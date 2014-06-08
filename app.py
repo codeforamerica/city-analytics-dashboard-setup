@@ -39,7 +39,7 @@ def index():
     if (scheme, host) == ('http', 'dfd-dashboard-setup.herokuapp.com'):
         return redirect('https://dfd-dashboard-setup.herokuapp.com')
 
-    return render_template('index.html')
+    return render_template('index.html', style_base=get_style_base(request))
 
 @app.route('/authorize-google', methods=['POST'])
 def authorize_google():
@@ -87,7 +87,8 @@ def callback_google():
     properties.sort(key=lambda p: p[1].lower())
     
     values = dict(client_id=client_id, client_secret=client_secret,
-                  refresh_token=refresh_token, properties=properties)
+                  refresh_token=refresh_token, properties=properties,
+                  style_base=get_style_base(request))
     
     return render_template('index.html', **values)
 
@@ -155,6 +156,14 @@ def get_scheme(request):
         return request.headers['x-forwarded-proto']
     
     return request.scheme
+
+def get_style_base(request):
+    '''
+    '''
+    if get_scheme(request) == 'https':
+        return 'https://style.s.codeforamerica.org'
+    
+    return 'http://style.codeforamerica.org'
 
 def google_client_info(request):
     ''' Return Client ID, secret, and redirect URI for Google OAuth use.
