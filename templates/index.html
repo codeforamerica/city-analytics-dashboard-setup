@@ -77,12 +77,10 @@
 		        <h2>Setup</h2>
 	            <p>Setup is pretty easy, you can do it right from this page. It makes the following assumptions, however:</p>
 	            <ul>
-	            	<li>You have access to your google analytics account, and permission to turn on the Google Analytics API</li>
-	            	<li>You have permission to use, or create, an account with heroku.com</li>
+	            	<li>You have access to a <a href="https://www.google.com/analytics/">Google Analytics</a> account.</li>
+	            	<li>You have permission to use, or create, an account with <a href="http://heroku.com">Heroku</a>.</li>
 	            </ul>
-	            <h3>1. Enable the Google Analytics API</h3>
-	            	<p><a href="">Log into the Google Developer Console</a> and enable the Google analytics API</p>
-	            <h3>2. Get all the CLIENT keys you'll need from Google</h3>
+	            <h3>1. Connect To Google</h3>
 
                 {% if client_id and client_secret and refresh_token and properties %}
                     <table>
@@ -101,15 +99,15 @@
                     </table>
 
                 {% else %}
-                    <p>Authorize yourself with Google via this <a href="">OAuth Dance tool</a>. It'll return you to this page with the correct values.</p>
+                    <p>Connect to Google via the button below. It'll return you to this page with information about your analytics account.</p>
 
                     <form action="/authorize-google" method="POST">
-                        <button>Authorize with Google</button>
+                        <button>Connect To Google</button>
                     </form>
                 {% endif %}
 
 	            <form action="/prepare-app" method="POST">
-	            <h3>3. Select your Analytics ID</h3>
+	            <h3>2. Select your Analytics ID</h3>
 
                 {% if properties %}
                     <select name="property">
@@ -119,30 +117,36 @@
                     </select>
 
                 {% else %}
+                    <strike>
                     <!-- If we are able to just poll for this without another auth step, we can just remove this step all together -->
                     <p><a href="">Log in to Google Analytics</a> with the same email you authorized with above, and retrieve your Google Analytics ID.</p>
                     <p><label>Put your Google Analytics View ID here: </label><input /></p>
 
                     <!-- Totally up for removing this variable entirely -->
                     <p><label>And enter the website's URL here: </label><input />
+                    </strike>
                 {% endif %}
 	            
-	            <h3>4. Create!</h3>
+	            <h3>3. Create!</h3>
                     <p>Now all the fields above are filled out, click the button below to create a new Heroku application with these credentials.</p>
 	            
 	            	{% if client_id and client_secret and refresh_token and properties %}
 	            	    <input type="hidden" name="client_id" value="{{ client_id }}">
 	            	    <input type="hidden" name="client_secret" value="{{ client_secret }}">
 	            	    <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
-                        <button>Create</button>
+                        <button>Create Dashboard</button>
+	            	{% else %}
+                        <button disabled>Create Dashboard</button>
 	            	{% endif %}
 	            	
 	            	<!-- I assume it generates a heroku app name, that we should output here -->
 
 	            </form>
 
-	            <h3>5. Congratulations! You've hopefully got a dashboard now!</h3>
+	            <h3>4. Congratulations! You've hopefully got a dashboard now!</h3>
+	            <strike>
 	            <p>Check it out at <a href="">generatedname.herokuapp.com</a></p>
+	            </strike>
 
 		    </section>
 		    
