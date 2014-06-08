@@ -10,7 +10,7 @@ from tempfile import mkdtemp
 from os.path import commonprefix, join, isdir, exists, basename
 from shutil import make_archive, rmtree
 
-from flask import Flask, request, session, redirect, render_template, jsonify, send_file
+from flask import Flask, request, redirect, render_template, jsonify, send_file
 from requests import get, post, Session
 import oauth2
 
@@ -29,7 +29,6 @@ heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
 heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
 
 app = Flask(__name__)
-app.secret_key = 'fake'
 
 @app.route("/")
 def index():
@@ -105,14 +104,14 @@ def prepare_app():
                CLIENT_SECRET=request.form.get('client_secret'),
                REFRESH_TOKEN=request.form.get('refresh_token'))
     
-    session['tarfile'] = prepare_tarball(display_screen_tarball_url,
-                                         dict(name='Display Screen', env=env))
+    tarpath = prepare_tarball(display_screen_tarball_url,
+                              dict(name='Display Screen', env=env))
     
     client_id, _, redirect_uri = heroku_client_info(request)
     
     query_string = urlencode(dict(client_id=client_id, redirect_uri=redirect_uri,
                                   response_type='code', scope='global',
-                                  state=str(uuid4())))
+                                  state=tarpath))
     
     return redirect(heroku_authorize_url + '?' + query_string)
 
@@ -128,7 +127,7 @@ def get_tarball(filename):
 def callback_heroku():
     '''
     '''
-    code, state = request.args.get('code'), request.args.get('state')
+    code, tarpath = request.args.get('code'), request.args.get('state')
     client_id, client_secret, redirect_uri = heroku_client_info(request)
 
     data = dict(grant_type='authorization_code', client_secret=client_secret,
@@ -140,14 +139,14 @@ def callback_heroku():
     refresh_token, session_nonce = access['refresh_token'], access['session_nonce']
     
     try:
-        tar = basename(session['tarfile'])
+        tar = basename(tarpath)
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar)
         app_name = create_app(access_token, url)
         
         return redirect(heroku_app_activity_template.format(app_name))
     
     finally:
-        os.remove(session['tarfile'])
+        os.remove(tarpath)
 
 def get_scheme(request):
     '''
