@@ -108,6 +108,7 @@
 
 	            <form action="/prepare-app" method="POST">
 	            <h3>2. Select your Analytics ID</h3>
+	            <p>You may have more than one view setup, so select the one that will show the data for the area you want on your dashboard.</p>
 
                 {% if properties %}
                     <select name="property">
@@ -117,14 +118,7 @@
                     </select>
 
                 {% else %}
-                    <strike>
-                    <!-- If we are able to just poll for this without another auth step, we can just remove this step all together -->
-                    <p><a href="">Log in to Google Analytics</a> with the same email you authorized with above, and retrieve your Google Analytics ID.</p>
-                    <p><label>Put your Google Analytics View ID here: </label><input /></p>
-
-                    <!-- Totally up for removing this variable entirely -->
-                    <p><label>And enter the website's URL here: </label><input />
-                    </strike>
+                <!-- else... no google analytics account found?-->
                 {% endif %}
 	            
 	            <h3>3. Create!</h3>
@@ -144,9 +138,7 @@
 	            </form>
 
 	            <h3>4. Congratulations! You've hopefully got a dashboard now!</h3>
-	            <strike>
-	            <p>Check it out at <a href="">generatedname.herokuapp.com</a></p>
-	            </strike>
+	            
 
 		    </section>
 		    
