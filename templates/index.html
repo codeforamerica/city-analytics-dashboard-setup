@@ -83,9 +83,11 @@
 	            <h3>1. Connect To Google</h3>
 
                 {% if name and email %}
-                    <p class="icon-checkmark">
-                        Connected to Google as {{ name }} ({{ email }}).
-                    </p>
+                    <div class="alert-success">
+                      <p>
+                        Connected to Google as <b>{{ name }} ({{ email }})</b>.
+                      </p>
+                    </div>
 
                 {% else %}
                     <p>Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
@@ -95,43 +97,35 @@
                     </form>
                 {% endif %}
 
+	            <h3>2. Create Your Application</h3>
 	            <form action="/prepare-app" method="POST">
-	            <h3>2. Select your Analytics ID</h3>
-	            <p>You may have more than one view setup, so select the one that will show the data for the area you want on your dashboard.</p>
+                    {% if properties %}
+                        <p>You may have more than one view setup, so select the one that will show the data for the area you want on your dashboard.</p>
 
-                {% if properties %}
-                    <select name="property">
-                      {% for (id, name, url) in properties %}
-                        <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
-                      {% endfor %}
-                    </select>
+                        <select name="property">
+                          {% for (id, name, url) in properties %}
+                            <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
+                          {% endfor %}
+                        </select>
 
-                {% else %}
-                    <!-- else... no google analytics account found?-->
-                    <select disabled>
-                        <option value="select analytics view">Select Analytics View</option>
-                    </select>
-                {% endif %}
-	            
-	            <h3>3. Create!</h3>
+                    {% else %}
+                        <select disabled>
+                            <option value="select analytics view">Select Analytics View</option>
+                        </select>
+                    {% endif %}
+                
                     <p>Finally, click the next button to create your dashboard!</p>
                     <p>When you click <strong>Create Dashboard</strong>, you'll be taken to <a href="http://heroku.com">heroku.com</a>.  If you have an existing account, simply login as normal. If you don't yet have an account, you'll be asked to create one (for free), and then you'll continue through the automated creation process and be given the URL for your new dashboard!</p>
-	            	
-	            	{% if client_id and client_secret and refresh_token and properties %}
-	            	    <input type="hidden" name="client_id" value="{{ client_id }}">
-	            	    <input type="hidden" name="client_secret" value="{{ client_secret }}">
-	            	    <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
+                
+                    {% if client_id and client_secret and refresh_token and properties %}
+                        <input type="hidden" name="client_id" value="{{ client_id }}">
+                        <input type="hidden" name="client_secret" value="{{ client_secret }}">
+                        <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
                         <button>Create Dashboard</button>
-	            	{% else %}
+                    {% else %}
                         <button disabled>Create Dashboard</button>
-	            	{% endif %}
-	            	
-	            	<!-- I assume it generates a heroku app name, that we should output here -->
-
+                    {% endif %}
 	            </form>
-
-	        
-
 		    </section>
 		    
 		    <section id="uses">

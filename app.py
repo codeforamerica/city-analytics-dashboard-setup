@@ -83,6 +83,9 @@ def callback_google():
     name, email = get_google_personal_info(access_token)
     properties = get_google_analytics_properties(access_token)
     
+    if not properties:
+        raise Exception("Your Google Account isn't associated with any Google Analytics properties. Log in to Google with a different account?")
+    
     values = dict(client_id=client_id, client_secret=client_secret,
                   refresh_token=refresh_token, properties=properties,
                   style_base=get_style_base(request), name=name, email=email)
