@@ -99,7 +99,7 @@
                     {% if properties %}
                				<h3>2. Create Your Application</h3>
                				<div class="alert-info">
-                        <p>
+                        <p style="overflow:hidden">
                         <select name="property">
                           {% for (id, name, url) in properties %}
                             <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
