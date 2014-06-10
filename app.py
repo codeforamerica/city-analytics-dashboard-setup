@@ -32,16 +32,21 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
+    ''' Render front page with all the info.
+    
+        If not running locally, force SSL.
+    '''
     scheme, host = get_scheme(request), request.host
     
-    # Force SSL when running on Heroku.
-    if (scheme, host) == ('http', 'dfd-dashboard-setup.herokuapp.com'):
+    if scheme == 'http' and host[:9] not in ('localhost', '127.0.0.1'):
         return redirect('https://dfd-dashboard-setup.herokuapp.com')
 
     return render_template('index.html', style_base=get_style_base(request))
 
 @app.route('/authorize-google', methods=['POST'])
 def authorize_google():
+    ''' Ask Google to authenticate. On success, return to /callback-google.
+    '''
     client_id, client_secret, redirect_uri = google_client_info(request)
 
     query_string = urlencode(dict(client_id=client_id, redirect_uri=redirect_uri,
@@ -53,7 +58,7 @@ def authorize_google():
 
 @app.route('/callback-google')
 def callback_google():
-    '''
+    ''' Complete Google authentication, get web properties, and show the form.
     '''
     code, state = request.args.get('code'), request.args.get('state')
     client_id, client_secret, redirect_uri = google_client_info(request)
@@ -94,7 +99,7 @@ def callback_google():
 @app.route('/create-app', methods=['POST'])
 @app.route('/prepare-app', methods=['POST'])
 def prepare_app():
-    '''
+    ''' Prepare app, ask Heroku to authenticate, return to /callback-heroku.
     '''
     GA_VIEW_ID, GA_WEBSITE_URL = request.form.get('property').split(' ', 1)
     
@@ -117,7 +122,7 @@ def prepare_app():
 
 @app.route('/tarball/<path:filename>')
 def get_tarball(filename):
-    '''
+    ''' Return the named application tarball from the temp directory.
     '''
     filepath = join(os.environ.get('TMPDIR', '/tmp'), filename)
     
@@ -125,7 +130,7 @@ def get_tarball(filename):
 
 @app.route('/callback-heroku')
 def callback_heroku():
-    '''
+    ''' Complete Heroku authentication, start app-setup, redirect to app page.
     '''
     code, tarpath = request.args.get('code'), request.args.get('state')
     client_id, client_secret, redirect_uri = heroku_client_info(request)
@@ -149,7 +154,7 @@ def callback_heroku():
         os.remove(tarpath)
 
 def get_scheme(request):
-    '''
+    ''' Get the current URL scheme, e.g. 'http' or 'https'.
     '''
     if 'x-forwarded-proto' in request.headers:
         return request.headers['x-forwarded-proto']
@@ -157,7 +162,7 @@ def get_scheme(request):
     return request.scheme
 
 def get_style_base(request):
-    '''
+    ''' Get the correct style base URL for the current scheme.
     '''
     if get_scheme(request) == 'https':
         return 'https://style.s.codeforamerica.org'
@@ -197,7 +202,7 @@ def heroku_client_info(request):
     return id, secret, '{0}://{1}/callback-heroku'.format(scheme, host)
 
 def prepare_tarball(url, app):
-    '''
+    ''' Prepare a tarball with app.json from the source URL.
     '''
     got = get(url, allow_redirects=True)
     raw = GzipFile(fileobj=StringIO(got.content))
@@ -222,7 +227,7 @@ def prepare_tarball(url, app):
     return tarpath
 
 def create_app(access_token, source_url):
-    '''
+    ''' Create a Heroku application based on a tarball URL, return its name.
     '''
     client = Session()
     client.trust_env = False # https://github.com/kennethreitz/requests/issues/2066
