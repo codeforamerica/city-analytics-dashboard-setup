@@ -80,8 +80,8 @@
 	            	<li>You have access to a <a href="https://www.google.com/analytics/">Google Analytics</a> account.</li>
 	            	<li>You have permission to use, or create, an account with <a href="http://heroku.com">Heroku</a>.</li>
 	            </ul>
-	            <h3>1. Connect To Google</h3>
 
+	            <h3>1. Connect To Google</h3>
                 {% if name and email %}
                     <div class="alert-success">
                       <p>
@@ -90,10 +90,10 @@
                     </div>
 
                 {% else %}
-                    <p>Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
-
                     <form action="/authorize-google" method="POST">
-                        <button>Connect To Google</button>
+                        <p>Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
+
+                        <p><button>Connect To Google</button></p>
                     </form>
                 {% endif %}
 
@@ -102,28 +102,36 @@
                     {% if properties %}
                         <p>You may have more than one view setup, so select the one that will show the data for the area you want on your dashboard.</p>
 
+                        <p>
                         <select name="property">
                           {% for (id, name, url) in properties %}
                             <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
                           {% endfor %}
                         </select>
+                        </p>
 
                     {% else %}
+                        <p>
                         <select disabled>
                             <option value="select analytics view">Select Analytics View</option>
                         </select>
+                        </p>
                     {% endif %}
                 
                     <p>Finally, click the next button to create your dashboard!</p>
                     <p>When you click <strong>Create Dashboard</strong>, you'll be taken to <a href="http://heroku.com">heroku.com</a>.  If you have an existing account, simply login as normal. If you don't yet have an account, you'll be asked to create one (for free), and then you'll continue through the automated creation process and be given the URL for your new dashboard!</p>
                 
                     {% if client_id and client_secret and refresh_token and properties %}
+                        <p>
                         <input type="hidden" name="client_id" value="{{ client_id }}">
                         <input type="hidden" name="client_secret" value="{{ client_secret }}">
                         <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
                         <button>Create Dashboard</button>
+                        </p>
                     {% else %}
+                        <p>
                         <button disabled>Create Dashboard</button>
+                        </p>
                     {% endif %}
 	            </form>
 		    </section>
