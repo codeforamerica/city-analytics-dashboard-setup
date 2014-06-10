@@ -115,7 +115,7 @@
                     {% endif %}
                 
                     <p>Finally, click the <strong>Create Dashboard</strong> button to create your dashboard!</p>
-                    <p>When you click <strong>Create Dashboard</strong>, you'll be taken to <a href="http://heroku.com">heroku.com</a>.  If you have an existing account, simply login as normal. If you don't yet have an account, you'll be asked to create one (for free), and then you'll continue through the automated creation process and be given the URL for your new dashboard!</p>
+                    
                 
                     {% if client_id and client_secret and refresh_token and properties %}
                         <p>
@@ -123,6 +123,7 @@
                         <input type="hidden" name="client_secret" value="{{ client_secret }}">
                         <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
                         <button>Create Dashboard</button>
+                        <p class="note">When you click <strong>Create Dashboard</strong>, you'll be taken to <a href="http://heroku.com">heroku.com</a>.  If you have an existing account, simply login as normal. If you don't yet have an account, you'll be asked to create one (for free), and then you'll continue through the automated creation process and be given the URL for your new dashboard!</p>
                         </p>
                     {% else %}
                         <p><button disabled>Create Dashboard</button></p>
