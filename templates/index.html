@@ -82,21 +82,10 @@
 	            </ul>
 	            <h3>1. Connect To Google</h3>
 
-                {% if client_id and client_secret and refresh_token and properties %}
-                    <table>
-                        <tr>
-                            <td>Client ID</td>
-                            <td>{{ client_id }}</td>
-                        </tr>
-                        <tr>
-                            <td>Client Secret</td>
-                            <td>{{ client_secret }}</td>
-                        </tr>
-                        <tr>
-                            <td>Refresh Token</td>
-                            <td>{{ refresh_token }}</td>
-                        </tr>
-                    </table>
+                {% if name and email %}
+                    <p class="icon-checkmark">
+                        Connected to Google as {{ name }} ({{ email }}).
+                    </p>
 
                 {% else %}
                     <p>Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
@@ -118,10 +107,10 @@
                     </select>
 
                 {% else %}
-                <!-- else... no google analytics account found?-->
-                <select disabled>
-                 	<option value="select analytics view">Select Analytics View</option>
-                </select>
+                    <!-- else... no google analytics account found?-->
+                    <select disabled>
+                        <option value="select analytics view">Select Analytics View</option>
+                    </select>
                 {% endif %}
 	            
 	            <h3>3. Create!</h3>

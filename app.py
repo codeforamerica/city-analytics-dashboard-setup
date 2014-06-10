@@ -20,6 +20,8 @@ google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
 google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
 
 google_analytics_properties_url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties'
+google_plus_whoami_url = 'https://www.googleapis.com/plus/v1/people/me'
+google_auth_scopes = 'email', 'https://www.googleapis.com/auth/analytics', 'https://www.googleapis.com/auth/analytics.readonly'
 
 heroku_authorize_url = 'https://id.heroku.com/oauth/authorize'
 heroku_access_token_url = 'https://id.heroku.com/oauth/token'
@@ -50,7 +52,7 @@ def authorize_google():
     client_id, client_secret, redirect_uri = google_client_info(request)
 
     query_string = urlencode(dict(client_id=client_id, redirect_uri=redirect_uri,
-                                  scope='https://www.googleapis.com/auth/analytics https://www.googleapis.com/auth/analytics.readonly',
+                                  scope=' '.join(google_auth_scopes),
                                   state=str(uuid4()), response_type='code',
                                   access_type='offline', approval_prompt='force'))
     
@@ -69,13 +71,23 @@ def callback_google():
     
     resp = post(google_access_token_url, data=data)
     access = json.loads(resp.content)
+    
+    if resp.status_code != 200:
+        if 'error_description' in access:
+            raise Exception('Google says "{0}"'.format(access['error_description']))
+        else:
+            raise Exception('Google Error')
+    
     access_token, token_type = access['access_token'], access['token_type']
     refresh_token = access['refresh_token']
     
-    #
-    # '{"error":{"errors":[{"domain":"usageLimits","reason":"accessNotConfigured","message":"Access Not Configured. Please use Google Developers Console to activate the API for your project."}],"code":403,"message":"Access Not Configured. Please use Google Developers Console to activate the API for your project."}}'
-    # https://code.google.com/apis/console/ > APIs & Auth > Analytics API "On"
-    #
+    response = json.loads(get(google_plus_whoami_url,
+                              params={'access_token': access_token}).content)
+    
+    emails = dict([(e['type'], e['value']) for e in response['emails']])
+    email = emails.get('account', response['emails'][0]['value'])
+    name = response['displayName']
+    
     response = json.loads(get(google_analytics_properties_url,
                               params={'access_token': access_token}).content)
     
@@ -92,7 +104,7 @@ def callback_google():
     
     values = dict(client_id=client_id, client_secret=client_secret,
                   refresh_token=refresh_token, properties=properties,
-                  style_base=get_style_base(request))
+                  style_base=get_style_base(request), name=name, email=email)
     
     return render_template('index.html', **values)
 
