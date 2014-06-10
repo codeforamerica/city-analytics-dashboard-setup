@@ -69,38 +69,19 @@ def callback_google():
                 code=code, redirect_uri=redirect_uri,
                 grant_type='authorization_code')
     
-    resp = post(google_access_token_url, data=data)
-    access = json.loads(resp.content)
+    response = post(google_access_token_url, data=data)
+    access = json.loads(response.content)
     
-    if resp.status_code != 200:
+    if response.status_code != 200:
         if 'error_description' in access:
             raise Exception('Google says "{0}"'.format(access['error_description']))
         else:
             raise Exception('Google Error')
     
-    access_token, token_type = access['access_token'], access['token_type']
-    refresh_token = access['refresh_token']
+    access_token, refresh_token = access['access_token'], access['refresh_token']
     
-    response = json.loads(get(google_plus_whoami_url,
-                              params={'access_token': access_token}).content)
-    
-    emails = dict([(e['type'], e['value']) for e in response['emails']])
-    email = emails.get('account', response['emails'][0]['value'])
-    name = response['displayName']
-    
-    response = json.loads(get(google_analytics_properties_url,
-                              params={'access_token': access_token}).content)
-    
-    if 'items' not in response:
-        return jsonify(response)
-    
-    properties = [
-        (item['defaultProfileId'], item['name'], item['websiteUrl'])
-        for item in response.get('items')
-        if item.get('defaultProfileId', False)
-        ]
-    
-    properties.sort(key=lambda p: p[1].lower())
+    name, email = get_google_personal_info(access_token)
+    properties = get_google_analytics_properties(access_token)
     
     values = dict(client_id=client_id, client_secret=client_secret,
                   refresh_token=refresh_token, properties=properties,
@@ -181,6 +162,45 @@ def get_style_base(request):
     
     return 'http://style.codeforamerica.org'
 
+def get_google_personal_info(access_token):
+    ''' Get account name and email from Google Plus.
+    '''
+    response = get(google_plus_whoami_url, params={'access_token': access_token})
+    
+    if response.status_code != 200:
+        if 'error_description' in access:
+            raise Exception('Google says "{0}"'.format(access['error_description']))
+        else:
+            raise Exception('Google Error')
+    
+    whoami = json.loads(response.content)
+    emails = dict([(e['type'], e['value']) for e in whoami['emails']])
+    email = emails.get('account', whoami['emails'][0]['value'])
+    name = whoami['displayName']
+    
+    return name, email
+
+def get_google_analytics_properties(access_token):
+    ''' Get sorted list of web properties from Google Analytics.
+    '''
+    response = get(google_analytics_properties_url, params={'access_token': access_token})
+    
+    if response.status_code != 200:
+        if 'error_description' in access:
+            raise Exception('Google says "{0}"'.format(access['error_description']))
+        else:
+            raise Exception('Google Error')
+    
+    properties = [
+        (item['defaultProfileId'], item['name'], item['websiteUrl'])
+        for item in json.loads(response.content).get('items')
+        if item.get('defaultProfileId', False)
+        ]
+    
+    properties.sort(key=lambda p: p[1].lower())
+    
+    return properties
+    
 def google_client_info(request):
     ''' Return Client ID, secret, and redirect URI for Google OAuth use.
     '''
