@@ -85,19 +85,21 @@
                     </div>
 
                 {% else %}
+                	<div class="alert-info">
                     <form action="/authorize-google" method="POST">
-                        <p class="alert-info">Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
+                        <p>Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
 
                         <p><button>Connect To Google</button></p>
                     </form>
+                   </div>
                 {% endif %}
 
-	            <h3>2. Create Your Application</h3>
+	            
 	            <form action="/prepare-app" method="POST">
                     {% if properties %}
-               
-
-                        <p class="alert-info">
+               				<h3>2. Create Your Application</h3>
+               				<div class="alert-info">
+                        <p>
                         <select name="property">
                           {% for (id, name, url) in properties %}
                             <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
@@ -105,13 +107,14 @@
                         </select>
                         </p>
                         <p class="note">You may have more than one view setup, so select the one that will show the data for the area you want on your dashboard.</p>
-
+                      </div>
                     {% else %}
-                        <p>
+
+                        <!--p>
                         <select disabled>
                             <option value="select analytics view">Select Analytics View</option>
                         </select>
-                        </p>
+                        </p-->
                     {% endif %} 
                 
 
