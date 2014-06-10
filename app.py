@@ -10,7 +10,7 @@ from tempfile import mkdtemp
 from os.path import commonprefix, join, isdir, exists, basename
 from shutil import make_archive, rmtree
 
-from flask import Flask, request, redirect, render_template, jsonify, send_file
+from flask import Flask, request, redirect, render_template, jsonify, send_file, make_response
 from requests import get, post, Session
 import oauth2
 
@@ -29,6 +29,9 @@ heroku_access_token_url = 'https://id.heroku.com/oauth/token'
 heroku_app_setup_url = 'https://api.heroku.com/app-setups'
 heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
 heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
+
+class SetupError (Exception):
+    pass
 
 app = Flask(__name__)
 
@@ -69,22 +72,27 @@ def callback_google():
                 code=code, redirect_uri=redirect_uri,
                 grant_type='authorization_code')
     
-    response = post(google_access_token_url, data=data)
-    access = json.loads(response.content)
+    try:
+        response = post(google_access_token_url, data=data)
+        access = json.loads(response.content)
     
-    if response.status_code != 200:
-        if 'error_description' in access:
-            raise Exception('Google says "{0}"'.format(access['error_description']))
-        else:
-            raise Exception('Google Error')
+        if response.status_code != 200:
+            if 'error_description' in access:
+                raise SetupError('Google says "{0}"'.format(access['error_description']))
+            else:
+                raise SetupError('Google Error')
     
-    access_token, refresh_token = access['access_token'], access['refresh_token']
+        access_token, refresh_token = access['access_token'], access['refresh_token']
     
-    name, email = get_google_personal_info(access_token)
-    properties = get_google_analytics_properties(access_token)
+        name, email = get_google_personal_info(access_token)
+        properties = get_google_analytics_properties(access_token)
     
-    if not properties:
-        raise Exception("Your Google Account isn't associated with any Google Analytics properties. Log in to Google with a different account?")
+        if not properties:
+            raise SetupError("Your Google Account isn't associated with any Google Analytics properties. Log in to Google with a different account?")
+    
+    except SetupError, e:
+        values = dict(style_base=get_style_base(request), message=e.message)
+        return make_response(render_template('error.html', **values), 400)
     
     values = dict(client_id=client_id, client_secret=client_secret,
                   refresh_token=refresh_token, properties=properties,
@@ -172,9 +180,9 @@ def get_google_personal_info(access_token):
     
     if response.status_code != 200:
         if 'error_description' in access:
-            raise Exception('Google says "{0}"'.format(access['error_description']))
+            raise SetupError('Google says "{0}"'.format(access['error_description']))
         else:
-            raise Exception('Google Error')
+            raise SetupError('Google Error')
     
     whoami = json.loads(response.content)
     emails = dict([(e['type'], e['value']) for e in whoami['emails']])
@@ -190,9 +198,9 @@ def get_google_analytics_properties(access_token):
     
     if response.status_code != 200:
         if 'error_description' in access:
-            raise Exception('Google says "{0}"'.format(access['error_description']))
+            raise SetupError('Google says "{0}"'.format(access['error_description']))
         else:
-            raise Exception('Google Error')
+            raise SetupError('Google Error')
     
     properties = [
         (item['defaultProfileId'], item['name'], item['websiteUrl'])
