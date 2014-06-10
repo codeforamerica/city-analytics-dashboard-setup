@@ -86,7 +86,7 @@
 
                 {% else %}
                     <form action="/authorize-google" method="POST">
-                        <p>Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
+                        <p class="alert-info">Connect to Google via the button below (using your email associated with your Google Analytics account).</p>
 
                         <p><button>Connect To Google</button></p>
                     </form>
@@ -97,7 +97,7 @@
                     {% if properties %}
                
 
-                        <p>
+                        <p class="alert-info">
                         <select name="property">
                           {% for (id, name, url) in properties %}
                             <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
@@ -114,10 +114,10 @@
                         </p>
                     {% endif %} 
                 
-                    <p>Finally, click the <strong>Create Dashboard</strong> button to create your dashboard!</p>
-                    
+
                 
                     {% if client_id and client_secret and refresh_token and properties %}
+                    		<p class="alert-info">Finally, click the <strong>Create Dashboard</strong> button to create your dashboard!</p>
                         <p>
                         <input type="hidden" name="client_id" value="{{ client_id }}">
                         <input type="hidden" name="client_secret" value="{{ client_secret }}">
@@ -137,7 +137,7 @@
 		    <section id="uses">
 		        <h2>Suggested uses</h2>
 	            <p>The dashboard was designed to be a point of interest in an office, community center or city hall, rather than part of a city website.</p>
-	            
+
 
 		    </section>
 		    
