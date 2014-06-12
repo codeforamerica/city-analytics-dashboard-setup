@@ -108,9 +108,9 @@ def prepare_app():
     with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
         with connection.cursor() as cursor:
             cursor.execute('''INSERT INTO connections
-                              (client_id, email_address, profile_name, website_url) 
-                              VALUES (%s, %s, %s, %s)''',
-                           (client_id, email, name, website_url))
+                              (email_address, profile_name, website_url) 
+                              VALUES (%s, %s, %s)''',
+                           (email, name, website_url))
     
     env = dict(LANG='en_US.UTF-8', RACK_ENV='production',
                GA_VIEW_ID=view_id, GA_WEBSITE_URL=website_url,
