@@ -105,13 +105,6 @@ def prepare_app():
     client_secret = request.form.get('client_secret')
     refresh_token = request.form.get('refresh_token')
     
-    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute('''INSERT INTO connections
-                              (email_address, profile_name, website_url) 
-                              VALUES (%s, %s, %s)''',
-                           (email, name, website_url))
-    
     env = dict(LANG='en_US.UTF-8', RACK_ENV='production',
                GA_VIEW_ID=view_id, GA_WEBSITE_URL=website_url,
                CLIENT_ID=client_id, CLIENT_SECRET=client_secret,
@@ -120,27 +113,46 @@ def prepare_app():
     tarpath = prepare_tarball(display_screen_tarball_url,
                               dict(name='Display Screen', env=env))
     
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute('''INSERT INTO connections
+                              (email_address, profile_name, website_url) 
+                              VALUES (%s, %s, %s)''',
+                           (email, name, website_url))
+    
+            cursor.execute('INSERT INTO tarballs (contents) VALUES (%s)',
+                           (buffer(open(tarpath).read()), ))
+            
+            cursor.execute("SELECT CURRVAL('tarballs_id_seq')")
+            (tarball_id, ) = cursor.fetchone()
+    
     client_id, _, redirect_uri = heroku_client_info(request)
     
     query_string = urlencode(dict(client_id=client_id, redirect_uri=redirect_uri,
                                   response_type='code', scope='global',
-                                  state=tarpath))
+                                  state=str(tarball_id)))
     
     return redirect(heroku_authorize_url + '?' + query_string)
 
-@app.route('/tarball/<path:filename>')
-def get_tarball(filename):
+@app.route('/tarball/<int:tarball_id>')
+def get_tarball(tarball_id):
     ''' Return the named application tarball from the temp directory.
     '''
-    filepath = join(os.environ.get('TMPDIR', '/tmp'), filename)
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT contents FROM tarballs WHERE id = %s',
+                           (tarball_id, ))
+
+            (tarball_data, ) = cursor.fetchone()
     
-    return send_file(filepath)
+    filename = 'app-{0}.tar.gz'.format(tarball_id)
+    return send_file(StringIO(tarball_data), attachment_filename=filename)
 
 @app.route('/callback-heroku')
 def callback_heroku():
     ''' Complete Heroku authentication, start app-setup, redirect to app page.
     '''
-    code, tarpath = request.args.get('code'), request.args.get('state')
+    code, tar_id = request.args.get('code'), request.args.get('state')
     client_id, client_secret, redirect_uri = heroku_client_info(request)
 
     data = dict(grant_type='authorization_code', client_secret=client_secret,
@@ -152,14 +164,13 @@ def callback_heroku():
     refresh_token, session_nonce = access['refresh_token'], access['session_nonce']
     
     try:
-        tar = basename(tarpath)
-        url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar)
+        url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar_id)
         app_name = create_app(access_token, url)
         
         return redirect(heroku_app_activity_template.format(app_name))
     
     finally:
-        os.remove(tarpath)
+        pass
 
 def get_scheme(request):
     ''' Get the current URL scheme, e.g. 'http' or 'https'.
