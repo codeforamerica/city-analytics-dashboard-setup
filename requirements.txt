@@ -2,3 +2,5 @@ Flask >= 0.10
 gunicorn >= 18.0
 requests >= 2.3
 oauth2 >= 1.5.211
+flask-heroku >= 0.1.9
+psycopg2 >= 2.5.3

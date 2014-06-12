@@ -12,7 +12,8 @@ from shutil import make_archive, rmtree
 
 from flask import Flask, request, redirect, render_template, jsonify, send_file, make_response
 from requests import get, post, Session
-import oauth2
+from flask.ext.heroku import Heroku
+import oauth2, psycopg2
 
 display_screen_tarball_url = 'http://github.com/codeforamerica/display-screen/tarball/master/'
 
@@ -34,6 +35,7 @@ class SetupError (Exception):
     pass
 
 app = Flask(__name__)
+heroku = Heroku(app)
 
 @app.route("/")
 def index():
@@ -73,15 +75,7 @@ def callback_google():
                 grant_type='authorization_code')
     
     try:
-        response = post(google_access_token_url, data=data)
-        access = json.loads(response.content)
-    
-        if response.status_code != 200:
-            if 'error_description' in access:
-                raise SetupError('Google says "{0}"'.format(access['error_description']))
-            else:
-                raise SetupError('Google Error')
-    
+        access = get_google_access_token(data)
         access_token, refresh_token = access['access_token'], access['refresh_token']
     
         name, email = get_google_personal_info(access_token)
@@ -105,13 +99,23 @@ def callback_google():
 def prepare_app():
     ''' Prepare app, ask Heroku to authenticate, return to /callback-heroku.
     '''
-    GA_VIEW_ID, GA_WEBSITE_URL = request.form.get('property').split(' ', 1)
+    view_id, website_url = request.form.get('property').split(' ', 1)
+    name, email = request.form.get('name'), request.form.get('email')
+    client_id = request.form.get('client_id')
+    client_secret = request.form.get('client_secret')
+    refresh_token = request.form.get('refresh_token')
+    
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute('''INSERT INTO connections
+                              (client_id, email_address, profile_name, website_url) 
+                              VALUES (%s, %s, %s, %s)''',
+                           (client_id, email, name, website_url))
     
     env = dict(LANG='en_US.UTF-8', RACK_ENV='production',
-               GA_VIEW_ID=GA_VIEW_ID, GA_WEBSITE_URL=GA_WEBSITE_URL,
-               CLIENT_ID=request.form.get('client_id'),
-               CLIENT_SECRET=request.form.get('client_secret'),
-               REFRESH_TOKEN=request.form.get('refresh_token'))
+               GA_VIEW_ID=view_id, GA_WEBSITE_URL=website_url,
+               CLIENT_ID=client_id, CLIENT_SECRET=client_secret,
+               REFRESH_TOKEN=refresh_token)
     
     tarpath = prepare_tarball(display_screen_tarball_url,
                               dict(name='Display Screen', env=env))
@@ -172,6 +176,20 @@ def get_style_base(request):
         return 'https://style.s.codeforamerica.org'
     
     return 'http://style.codeforamerica.org'
+
+def get_google_access_token(data):
+    ''' Get access token from Google API.
+    '''
+    response = post(google_access_token_url, data=data)
+    access = json.loads(response.content)
+
+    if response.status_code != 200:
+        if 'error_description' in access:
+            raise SetupError('Google says "{0}"'.format(access['error_description']))
+        else:
+            raise SetupError('Google Error')
+    
+    return access
 
 def get_google_personal_info(access_token):
     ''' Get account name and email from Google Plus.

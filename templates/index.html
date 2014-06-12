@@ -77,7 +77,7 @@
 	            </ul>
 
 	            <h3>1. Connect To Google</h3>
-                {% if name and email %}
+                {% if email %}
                     <div class="alert-success">
                       <p>
                         Connected to Google as <b>{{ name }} ({{ email }})</b>.
@@ -120,11 +120,12 @@
                 
 
                 
-                    {% if client_id and client_secret and refresh_token and properties %}
+                    {% if email and client_id and client_secret and refresh_token and properties %}
                     		<div class="alert-info">
                     			<p><strong>Create and publish your dashboard</strong></p>
 	                    		<p>
-	                        <input type="hidden" name="client_id" value="{{ client_id }}">
+	                        <input type="hidden" name="name" value="{{ name }}">
+	                        <input type="hidden" name="email" value="{{ email }}">
 	                        <input type="hidden" name="client_secret" value="{{ client_secret }}">
 	                        <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
 	                        <p><button>Create Dashboard</button></p>
