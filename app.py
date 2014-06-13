@@ -197,7 +197,7 @@ def get_google_access_token(data):
     ''' Get access token from Google API.
     '''
     response = post(google_access_token_url, data=data)
-    access = json.loads(response.content)
+    access = response.json()
 
     if response.status_code != 200:
         if 'error_description' in access:
@@ -211,14 +211,14 @@ def get_google_personal_info(access_token):
     ''' Get account name and email from Google Plus.
     '''
     response = get(google_plus_whoami_url, params={'access_token': access_token})
+    whoami = response.json()
     
     if response.status_code != 200:
-        if 'error_description' in access:
-            raise SetupError('Google says "{0}"'.format(access['error_description']))
+        if 'error_description' in whoami:
+            raise SetupError('Google says "{0}"'.format(whoami['error_description']))
         else:
             raise SetupError('Google Error')
     
-    whoami = json.loads(response.content)
     emails = dict([(e['type'], e['value']) for e in whoami['emails']])
     email = emails.get('account', whoami['emails'][0]['value'])
     name = whoami['displayName']
@@ -229,16 +229,17 @@ def get_google_analytics_properties(access_token):
     ''' Get sorted list of web properties from Google Analytics.
     '''
     response = get(google_analytics_properties_url, params={'access_token': access_token})
+    items = response.json()
     
     if response.status_code != 200:
-        if 'error_description' in access:
-            raise SetupError('Google says "{0}"'.format(access['error_description']))
+        if 'error_description' in items:
+            raise SetupError('Google says "{0}"'.format(items['error_description']))
         else:
             raise SetupError('Google Error')
     
     properties = [
         (item['defaultProfileId'], item['name'], item['websiteUrl'])
-        for item in json.loads(response.content).get('items')
+        for item in items['items']
         if item.get('defaultProfileId', False)
         ]
     
