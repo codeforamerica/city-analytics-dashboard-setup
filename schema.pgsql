@@ -3,6 +3,8 @@ DROP TABLE tarballs;
 
 CREATE TABLE connections
 (
+    id              SERIAL PRIMARY KEY,
+    
     email_address   TEXT,
     profile_name    TEXT,
     website_url     TEXT,
@@ -12,7 +14,7 @@ CREATE TABLE connections
 
 CREATE TABLE tarballs
 (
-    id          SERIAL PRIMARY KEY,
+    id          INT REFERENCES connections(id),
     contents    BYTEA,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );

@@ -120,11 +120,11 @@ def prepare_app():
                               VALUES (%s, %s, %s)''',
                            (email, name, website_url))
     
-            cursor.execute('INSERT INTO tarballs (contents) VALUES (%s)',
-                           (buffer(open(tarpath).read()), ))
-            
-            cursor.execute("SELECT CURRVAL('tarballs_id_seq')")
+            cursor.execute("SELECT CURRVAL('connections_id_seq')")
             (tarball_id, ) = cursor.fetchone()
+
+            cursor.execute('INSERT INTO tarballs (id, contents) VALUES (%s, %s)',
+                           (tarball_id, buffer(open(tarpath).read())))
     
     client_id, _, redirect_uri = heroku_client_info(request)
     
@@ -146,7 +146,7 @@ def get_tarball(tarball_id):
             (tarball_data, ) = cursor.fetchone()
     
     filename = 'app-{0}.tar.gz'.format(tarball_id)
-    return send_file(StringIO(tarball_data), attachment_filename=filename)
+    return send_file(StringIO(tarball_data), as_attachment=True, attachment_filename=filename)
 
 @app.route('/callback-heroku')
 def callback_heroku():
