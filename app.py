@@ -155,22 +155,27 @@ def callback_heroku():
     code, tar_id = request.args.get('code'), request.args.get('state')
     client_id, client_secret, redirect_uri = heroku_client_info(request)
 
-    data = dict(grant_type='authorization_code', client_secret=client_secret,
-                code=code, redirect_uri='')
-    
-    resp = post(heroku_access_token_url, data=data)
-    access = json.loads(resp.content)
-    access_token, token_type = access['access_token'], access['token_type']
-    refresh_token, session_nonce = access['refresh_token'], access['session_nonce']
-    
     try:
+        data = dict(grant_type='authorization_code', code=code,
+                    client_secret=client_secret, redirect_uri='')
+    
+        response = post(heroku_access_token_url, data=data)
+        access = response.json()
+    
+        if response.status_code != 200:
+            if 'message' in access:
+                raise SetupError('Heroku says "{0}"'.format(access['message']))
+            else:
+                raise SetupError('Heroku Error')
+    
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar_id)
-        app_name = create_app(access_token, url)
-        
+        app_name = create_app(access['access_token'], url)
+    
         return redirect(heroku_app_activity_template.format(app_name))
     
-    finally:
-        pass
+    except SetupError, e:
+        values = dict(style_base=get_style_base(request), message=e.message)
+        return make_response(render_template('error.html', **values), 400)
 
 def get_scheme(request):
     ''' Get the current URL scheme, e.g. 'http' or 'https'.
@@ -320,7 +325,7 @@ def create_app(access_token, source_url):
         setup = gotten.json()
     
         if setup['status'] == 'failed':
-            raise Exception('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
+            raise SetupError('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
 
         if setup['build']['id'] is not None:
             break
