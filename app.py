@@ -1,4 +1,4 @@
-import os, sys, json
+import sys, json
 
 from urllib import urlencode
 from tarfile import TarFile
@@ -94,7 +94,6 @@ def callback_google():
     
     return render_template('index.html', **values)
 
-@app.route('/create-app', methods=['POST'])
 @app.route('/prepare-app', methods=['POST'])
 def prepare_app():
     ''' Prepare app, ask Heroku to authenticate, return to /callback-heroku.
