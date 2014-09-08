@@ -46,7 +46,7 @@ def index():
     scheme, host = get_scheme(request), request.host
     
     if scheme == 'http' and host[:9] not in ('localhost', '127.0.0.1'):
-        return redirect('https://dfd-dashboard-setup.herokuapp.com')
+        return redirect('https://dashboard-setup.codeforamerica.org')
 
     return render_template('index.html', style_base=get_style_base(request))
 
@@ -254,6 +254,9 @@ def google_client_info(request):
     if (scheme, host) == ('http', 'localhost:5000'):
         id, secret = "422651909980-7stoc5hn9nfrv9l9otrnf8tjei0lm68q.apps.googleusercontent.com", "qZ511l73AqF0K8sX6g2wSTMG"
 
+    elif (scheme, host) == ('https', 'dashboard-setup.codeforamerica.org'):
+        id, secret = "422651909980-fpg37u85pf1rnn8jselp8cl7fhibims8.apps.googleusercontent.com", "QAxrxk21Y4zT0MLkJ99HzUYj"
+
     elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
         id, secret = "422651909980-cm38qtgra61jub0c9uiis3qoc2lhasse.apps.googleusercontent.com", "qk2SIzRSn-_6MZpNdhUGQnJL"
 
@@ -269,6 +272,9 @@ def heroku_client_info(request):
     
     if (scheme, host) == ('http', 'localhost:5000'):
         id, secret = "e46e254a-d99e-47c1-83bd-f9bc9854d467", "8cfd15f1-89b6-4516-9650-ce6650c78b4c"
+
+    elif (scheme, host) == ('https', 'dashboard-setup.codeforamerica.org'):
+        id, secret = "abc6f200-db5f-4845-9b4f-80fa6e892bc1", "263257ea-4d1f-42b2-8329-85dc7004aeda"
 
     elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
         id, secret = "e422c58c-aa9d-4fec-8bc2-66c859e2f5df", "9fffa26f-5202-4bce-b139-e4b227690b53"
