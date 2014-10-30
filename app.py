@@ -315,7 +315,7 @@ def create_app(access_token, source_url):
     client = Session()
     client.trust_env = False # https://github.com/kennethreitz/requests/issues/2066
     
-    data = json.dumps({'source_blob': {'url': source_url}})
+    data = json.dumps({'source_blob': {'url': source_url}, 'app': {'stack': 'cedar'}});
 
     headers = {'Content-Type': 'application/json',
                'Authorization': 'Bearer {0}'.format(access_token),
