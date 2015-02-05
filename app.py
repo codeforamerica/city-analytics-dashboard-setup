@@ -263,6 +263,9 @@ def google_client_info(request):
     elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
         id, secret = "422651909980-cm38qtgra61jub0c9uiis3qoc2lhasse.apps.googleusercontent.com", "qk2SIzRSn-_6MZpNdhUGQnJL"
 
+    elif (scheme, host) == ('https', 'dfd-dashboard-development.herokuapp.com'):
+        id, secret = "422651909980-442b6sh4e985n1jpuduu8cd0se5sk7it.apps.googleusercontent.com", "S2aIyD_2UclYgpJyHk1zlW7d"
+
     else:
         raise Exception('You know nothing of {0}://{1}, Google'.format(scheme, host))
 
