@@ -30,6 +30,7 @@ heroku_access_token_url = 'https://id.heroku.com/oauth/token'
 heroku_app_setup_url = 'https://api.heroku.com/app-setups'
 heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
 heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
+heroku_app_direct_template = 'https://{0}.herokuapp.com'
 
 class SetupError (Exception):
     pass
@@ -171,7 +172,9 @@ def callback_heroku():
         app_name = create_app(access['access_token'], url)
         
         return render_template('done.html', style_base=get_style_base(request),
-                               heroku_url=heroku_app_activity_template.format(app_name))
+                               settings_url=heroku_app_activity_template.format(app_name),
+                               application_url=heroku_app_direct_template.format(app_name),
+                               app_name=app_name)
     
         return redirect(heroku_app_activity_template.format(app_name))
     

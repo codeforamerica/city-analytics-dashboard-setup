@@ -71,7 +71,8 @@
 
 		        <h2>Setup complete!</h2>
 	            <p>Yay, you're all set up!</p>
-	            <p>You can view your dashboard at this url: <a href="{{ heroku_url }}">{{ heroku_url }}</a></p>
+	            <p>You can view your dashboard at this url: <a href="{{ application_url }}">{{ application_url }}</a></p>
+	            <p>You can change the settings, including the auto-generated name <q>{{ app_name }}</q> at this url: <a href="{{ settings_url }}">{{ settings_url }}</a></p>
 	            <p>We're interested in knowing who's using this so we can notify you of upgrades and possibly check in very occasionally with a few questions. Could you please tell us a little bit about yourself? (Of course we'll never share this information with anyone.)</p>
 
 	            <form action="https://docs.google.com/forms/d/10vKzY6qQZu1bLFl98xr6FecgwoFmRfBQVAb5tSOysuM/formResponse" method="POST">
