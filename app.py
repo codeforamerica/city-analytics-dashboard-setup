@@ -170,7 +170,7 @@ def callback_heroku():
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar_id)
         app_name = create_app(access['access_token'], url)
         
-        return render_template('interstitial.html', style_base=get_style_base(request),
+        return render_template('done.html', style_base=get_style_base(request),
                                heroku_url=heroku_app_activity_template.format(app_name))
     
         return redirect(heroku_app_activity_template.format(app_name))
