@@ -279,6 +279,9 @@ def heroku_client_info(request):
     elif (scheme, host) == ('https', 'dfd-dashboard-setup.herokuapp.com'):
         id, secret = "e422c58c-aa9d-4fec-8bc2-66c859e2f5df", "9fffa26f-5202-4bce-b139-e4b227690b53"
 
+    elif (scheme, host) == ('https', 'dfd-dashboard-development.herokuapp.com'):
+        id, secret = "74e2723b-624d-4616-ab6a-c7736b4f027e", "9d25949e-4a96-4ab8-a8dc-203fd7801d2c"
+
     else:
         raise Exception('You know nothing of {0}://{1}, Heroku'.format(scheme, host))
 
