@@ -9,6 +9,8 @@ from time import sleep
 from tempfile import mkdtemp
 from os.path import commonprefix, join, isdir, exists, basename
 from shutil import make_archive, rmtree
+from os import environ
+from smtplib import SMTP
 
 from flask import Flask, request, redirect, render_template, jsonify, send_file, make_response
 from requests import get, post, Session
@@ -125,6 +127,19 @@ def prepare_app():
 
             cursor.execute('INSERT INTO tarballs (id, contents) VALUES (%s, %s)',
                            (tarball_id, buffer(open(tarpath).read())))
+            
+            try:
+                if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
+                    fromaddr = 'mike@codeforamerica.org'
+                    toaddr = 'jack@codeforamerica.org'
+                    msg = 'From: {fromaddr}\r\nTo: {toaddr}\r\nCc: {toaddr}\r\nSubject: City Analytics Dashboard got used\r\n\r\n{email}, {name}, {website_url}.'.format(**locals())
+
+                    conn = SMTP('smtp.sendgrid.net')
+                    conn.login(environ['SENDGRID_USERNAME'], environ['SENDGRID_PASSWORD'])
+                    conn.sendmail(fromaddr, (fromaddr, toaddr), msg)
+                    conn.quit()
+            except:
+                pass
     
     client_id, _, redirect_uri = heroku_client_info(request)
     
