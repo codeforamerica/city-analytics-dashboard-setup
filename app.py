@@ -132,7 +132,7 @@ def prepare_app():
                 if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
                     fromaddr = 'mike@codeforamerica.org'
                     toaddr = 'jack@codeforamerica.org'
-                    msg = 'From: {fromaddr}\r\nTo: {toaddr}\r\nCc: {toaddr}\r\nSubject: City Analytics Dashboard got used\r\n\r\n{email}, {name}, {website_url}.'.format(**locals())
+                    msg = 'From: {fromaddr}\r\nTo: {toaddr}\r\nCc: {fromaddr}\r\nSubject: City Analytics Dashboard got used\r\n\r\n{name} {email} for {website_url}.'.format(**locals())
 
                     conn = SMTP('smtp.sendgrid.net')
                     conn.login(environ['SENDGRID_USERNAME'], environ['SENDGRID_PASSWORD'])
