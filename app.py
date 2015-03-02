@@ -22,7 +22,8 @@ display_screen_tarball_url = 'http://github.com/codeforamerica/display-screen/ta
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
 google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
 
-google_analytics_properties_url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties'
+# Use URL from http://stackoverflow.com/questions/22127982/what-is-the-difference-of-internalwebpropertyid-defaultprofileid-and-profileid
+google_analytics_properties_url = 'https://www.googleapis.com/analytics/v3/management/accounts/~all/webproperties/~all/profiles'
 google_plus_whoami_url = 'https://www.googleapis.com/plus/v1/people/me'
 google_auth_scopes = 'email', 'https://www.googleapis.com/auth/analytics', 'https://www.googleapis.com/auth/analytics.readonly'
 
@@ -258,9 +259,8 @@ def get_google_analytics_properties(access_token):
             raise SetupError('Google Error')
     
     properties = [
-        (item['internalWebPropertyId'], item['name'], item['websiteUrl'])
+        (item['id'], item['name'], item['websiteUrl'])
         for item in items['items']
-        if item.get('internalWebPropertyId', False)
         ]
     
     properties.sort(key=lambda p: p[1].lower())
