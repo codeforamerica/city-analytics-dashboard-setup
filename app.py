@@ -258,9 +258,9 @@ def get_google_analytics_properties(access_token):
             raise SetupError('Google Error')
     
     properties = [
-        (item['defaultProfileId'], item['name'], item['websiteUrl'])
+        (item['internalWebPropertyId'], item['name'], item['websiteUrl'])
         for item in items['items']
-        if item.get('defaultProfileId', False)
+        if item.get('internalWebPropertyId', False)
         ]
     
     properties.sort(key=lambda p: p[1].lower())
