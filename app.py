@@ -12,6 +12,9 @@ from shutil import make_archive, rmtree
 from os import environ
 from smtplib import SMTP
 
+import logging
+from logging.handlers import SMTPHandler
+
 from flask import Flask, request, redirect, render_template, jsonify, send_file, make_response
 from requests import get, post, Session
 from flask.ext.heroku import Heroku
@@ -45,11 +48,21 @@ app.config['SEND_EMAIL'] = False
 app.config['EMAIL_RECIPIENT'] = 'analytics-dashboard@codeforamerica.org'
 app.config['EMAIL_SENDER'] = 'mike@codeforamerica.org'
 
+logger = logging.getLogger('noteworthy')
+
 if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
     app.config['SMTP_USERNAME'] = environ['SENDGRID_USERNAME']
     app.config['SMTP_PASSWORD'] = environ['SENDGRID_PASSWORD']
     app.config['SMTP_HOSTNAME'] = 'smtp.sendgrid.net'
     app.config['SEND_EMAIL'] = True
+    
+    handler = SMTPHandler(app.config['SMTP_HOSTNAME'], app.config['EMAIL_SENDER'],
+                          (app.config['EMAIL_RECIPIENT'], app.config['EMAIL_SENDER']),
+                          'City Analytics Dashboard error report',
+                          (app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD']))
+
+    handler.setLevel(logging.WARNING)
+    logger.addHandler(handler)
 
 @app.route("/")
 def index():
@@ -99,6 +112,7 @@ def callback_google():
             raise SetupError("Your Google Account isn't associated with any Google Analytics properties. Log in to Google with a different account?")
     
     except SetupError, e:
+        logger.error('City Analytics Dashboard - Google error', exc_info=True)
         values = dict(style_base=get_style_base(request), message=e.message)
         return make_response(render_template('error.html', **values), 400)
     
@@ -150,7 +164,7 @@ def prepare_app():
                     conn.sendmail(fromaddr, (fromaddr, toaddr), msg)
                     conn.quit()
             except:
-                pass
+                logger.error('City Analytics Dashboard - SMTP error', exc_info=True)
     
     client_id, _, redirect_uri = heroku_client_info(request)
     
@@ -205,6 +219,7 @@ def callback_heroku():
         return redirect(heroku_app_activity_template.format(app_name))
     
     except SetupError, e:
+        logger.error('City Analytics Dashboard - Heroku error', exc_info=True)
         values = dict(style_base=get_style_base(request), message=e.message)
         return make_response(render_template('error.html', **values), 400)
 
