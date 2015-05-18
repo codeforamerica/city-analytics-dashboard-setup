@@ -41,6 +41,16 @@ class SetupError (Exception):
 app = Flask(__name__)
 heroku = Heroku(app)
 
+app.config['SEND_EMAIL'] = False
+app.config['EMAIL_RECIPIENT'] = 'analytics-dashboard@codeforamerica.org'
+app.config['EMAIL_SENDER'] = 'mike@codeforamerica.org'
+
+if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
+    app.config['SMTP_USERNAME'] = environ['SENDGRID_USERNAME']
+    app.config['SMTP_PASSWORD'] = environ['SENDGRID_PASSWORD']
+    app.config['SMTP_HOSTNAME'] = 'smtp.sendgrid.net'
+    app.config['SEND_EMAIL'] = True
+
 @app.route("/")
 def index():
     ''' Render front page with all the info.
@@ -130,13 +140,13 @@ def prepare_app():
                            (tarball_id, buffer(open(tarpath).read())))
             
             try:
-                if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
-                    fromaddr = 'mike@codeforamerica.org'
-                    toaddr = 'jack@codeforamerica.org'
+                if app.config['SEND_EMAIL']:
+                    fromaddr = app.config['EMAIL_SENDER']
+                    toaddr = app.config['EMAIL_RECIPIENT']
                     msg = 'From: {fromaddr}\r\nTo: {toaddr}\r\nCc: {fromaddr}\r\nSubject: City Analytics Dashboard got used\r\n\r\n{name} {email} for {website_url}.'.format(**locals())
 
-                    conn = SMTP('smtp.sendgrid.net')
-                    conn.login(environ['SENDGRID_USERNAME'], environ['SENDGRID_PASSWORD'])
+                    conn = SMTP(app.config['SMTP_HOSTNAME'])
+                    conn.login(app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD'])
                     conn.sendmail(fromaddr, (fromaddr, toaddr), msg)
                     conn.quit()
             except:
