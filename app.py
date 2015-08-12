@@ -235,7 +235,7 @@ def get_style_base(request):
     ''' Get the correct style base URL for the current scheme.
     '''
     if get_scheme(request) == 'https':
-        return 'https://style.s.codeforamerica.org/1'
+        return 'https://style.codeforamerica.org/1'
     
     return 'http://style.codeforamerica.org/1'
 
