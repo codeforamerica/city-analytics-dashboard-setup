@@ -20,7 +20,7 @@ from requests import get, post, Session
 from flask.ext.heroku import Heroku
 import oauth2, psycopg2
 
-display_screen_tarball_url = 'http://github.com/codeforamerica/display-screen/tarball/master/'
+display_screen_tarball_url = 'https://github.com/codeforamerica/city-analytics-dashboard/tarball/1.x/'
 
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
 google_access_token_url = 'https://accounts.google.com/o/oauth2/token'
