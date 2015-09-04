@@ -102,10 +102,13 @@
                					<p><strong>Pick a property</strong></p>
                         <p style="overflow:hidden">
                         <select name="property">
-                          {% for (id, name, url) in properties %}
+                          {% for (id, name, url, timezone) in properties %}
                             <option value="{{ id }} {{ url }}">{{ name }} ({{ url }})</option>
                           {% endfor %}
                         </select>
+                        {% for (id, name, url, timezone) in properties %}
+                          <input type="hidden" name="{{id}}" value="{{ timezone }}">
+                        {% endfor %}
                         </p>
                         <p class="note">You may have more than one view setup, so select the one that will show the data for the area you want on your dashboard.</p>
                       </div>

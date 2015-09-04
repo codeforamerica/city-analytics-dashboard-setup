@@ -128,14 +128,16 @@ def prepare_app():
     '''
     view_id, website_url = request.form.get('property').split(' ', 1)
     name, email = request.form.get('name'), request.form.get('email')
+    timezone = request.form.get(view_id)
     client_id = request.form.get('client_id')
     client_secret = request.form.get('client_secret')
     refresh_token = request.form.get('refresh_token')
-    
+
     env = dict(LANG='en_US.UTF-8', RACK_ENV='production',
                GA_VIEW_ID=view_id, GA_WEBSITE_URL=website_url,
                CLIENT_ID=client_id, CLIENT_SECRET=client_secret,
-               REFRESH_TOKEN=refresh_token)
+               REFRESH_TOKEN=refresh_token,
+               GA_TIMEZONE=timezone)
     
     tarpath = prepare_tarball(display_screen_tarball_url,
                               dict(name='Display Screen', env=env))
@@ -284,7 +286,7 @@ def get_google_analytics_properties(access_token):
             raise SetupError('Google Error')
     
     properties = [
-        (item['id'], item['name'], item['websiteUrl'])
+        (item['id'], item['name'], item['websiteUrl'], item["timezone"])
         for item in items['items']
         ]
     
