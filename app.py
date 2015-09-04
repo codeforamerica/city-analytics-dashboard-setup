@@ -11,6 +11,9 @@ from os.path import commonprefix, join, isdir, exists, basename
 from shutil import make_archive, rmtree
 from os import environ
 from smtplib import SMTP
+from pytz import timezone
+from datetime import datetime, timedelta
+import pytz
 
 import logging
 from logging.handlers import SMTPHandler
@@ -128,7 +131,7 @@ def prepare_app():
     '''
     view_id, website_url = request.form.get('property').split(' ', 1)
     name, email = request.form.get('name'), request.form.get('email')
-    timezone = request.form.get(view_id)
+    timezone_string = request.form.get(view_id)
     client_id = request.form.get('client_id')
     client_secret = request.form.get('client_secret')
     refresh_token = request.form.get('refresh_token')
@@ -137,7 +140,7 @@ def prepare_app():
                GA_VIEW_ID=view_id, GA_WEBSITE_URL=website_url,
                CLIENT_ID=client_id, CLIENT_SECRET=client_secret,
                REFRESH_TOKEN=refresh_token,
-               GA_TIMEZONE=timezone)
+               GA_TIMEZONE_OFFSET=timezone_offset(timezone_string))
     
     tarpath = prepare_tarball(display_screen_tarball_url,
                               dict(name='Display Screen', env=env))
@@ -391,6 +394,11 @@ def create_app(access_token, source_url):
             break
 
     return app_name
+
+def timezone_offset(timezone_string):
+    normal = datetime.now()
+    tz = timezone(timezone_string)
+    return tz.utcoffset(normal).seconds/3600 + tz.utcoffset(normal).days*24
 
 if __name__ == '__main__':
     if sys.argv[-1] == 'ssl':
