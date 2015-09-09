@@ -129,6 +129,11 @@
 	                        <input type="hidden" name="client_id" value="{{ client_id }}">
 	                        <input type="hidden" name="client_secret" value="{{ client_secret }}">
 	                        <input type="hidden" name="refresh_token" value="{{ refresh_token }}">
+                          <p><strong>Customize your dashboard</strong></p>
+                          <br/>
+                          <input style="width:90%;" type="text" name="banner_text" value="" placeholder="Your text for the customizable context banner on top">
+                          <br/>
+                          <input style="width:90%;" type="text" name="banner_logo" value="" placeholder="A logo URL which will be displayed in the top left corner">
 	                        <p><button>Create Dashboard</button></p>
 	                        <p class="note">When you click <strong>Create Dashboard</strong>, you'll be taken to <a href="http://heroku.com">heroku.com</a>.  If you have an existing account, simply login as normal. If you don't yet have an account, you'll be asked to create one (for free), and then you'll continue through the automated creation process and be given the URL for your new dashboard!</p>
 	                        </p>

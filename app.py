@@ -131,11 +131,14 @@ def prepare_app():
     client_id = request.form.get('client_id')
     client_secret = request.form.get('client_secret')
     refresh_token = request.form.get('refresh_token')
+    banner_text = request.form.get('banner_text')
+    banner_logo = request.form.get('banner_logo')
     
     env = dict(LANG='en_US.UTF-8', RACK_ENV='production',
                GA_VIEW_ID=view_id, GA_WEBSITE_URL=website_url,
                CLIENT_ID=client_id, CLIENT_SECRET=client_secret,
-               REFRESH_TOKEN=refresh_token)
+               REFRESH_TOKEN=refresh_token,
+               BANNER_TEXT=banner_text, BANNER_LOGO=banner_logo)
     
     tarpath = prepare_tarball(display_screen_tarball_url,
                               dict(name='Display Screen', env=env))
