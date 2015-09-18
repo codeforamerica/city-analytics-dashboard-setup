@@ -385,7 +385,7 @@ def create_app(access_token, source_url):
         if setup['status'] == 'failed':
             raise SetupError('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
 
-        if setup['build']['id'] is not None:
+        if (setup['build'] or {}).get('id') is not None:
             break
 
     return app_name
