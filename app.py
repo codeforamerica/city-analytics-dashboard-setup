@@ -180,6 +180,8 @@ def prepare_app():
                                   response_type='code', scope='global',
                                   state=str(tarball_id)))
     
+    print >> sys.stderr, 'POST', '/prepare-app', 'redirect', heroku_authorize_url + '?' + query_string
+    
     return redirect(heroku_authorize_url + '?' + query_string)
 
 @app.route('/tarball/<int:tarball_id>')
