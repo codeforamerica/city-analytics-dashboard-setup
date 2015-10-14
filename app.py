@@ -105,6 +105,8 @@ def callback_google():
                 code=code, redirect_uri=redirect_uri,
                 grant_type='authorization_code')
     
+    print >> sys.stderr, 'GET', '/callback-google', data
+
     try:
         access = get_google_access_token(data)
         access_token, refresh_token = access['access_token'], access['refresh_token']
@@ -124,6 +126,8 @@ def callback_google():
                   refresh_token=refresh_token, properties=properties,
                   style_base=get_style_base(request), name=name, email=email)
     
+    print >> sys.stderr, 'GET', '/callback-google', values
+
     return render_template('index.html', **values)
 
 @app.route('/prepare-app', methods=['POST'])
@@ -248,6 +252,8 @@ def get_google_access_token(data):
     '''
     response = post(google_access_token_url, data=data)
     access = response.json()
+
+    print >> sys.stderr, 'get_google_access_token():', access.json()
 
     if response.status_code != 200:
         if 'error_description' in access:
