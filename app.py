@@ -90,6 +90,8 @@ def authorize_google():
                                   state=str(uuid4()), response_type='code',
                                   access_type='offline', approval_prompt='force'))
     
+    print >> sys.stderr, 'POST', '/authorize-google', 'redirect', google_authorize_url + '?' + query_string
+
     return redirect(google_authorize_url + '?' + query_string)
 
 @app.route('/callback-google')
