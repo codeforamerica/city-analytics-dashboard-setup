@@ -253,7 +253,7 @@ def get_google_access_token(data):
     response = post(google_access_token_url, data=data)
     access = response.json()
 
-    print >> sys.stderr, 'get_google_access_token():', access
+    print >> sys.stderr, 'get_google_access_token():', response.status_code, access
 
     if response.status_code != 200:
         if 'error_description' in access:
