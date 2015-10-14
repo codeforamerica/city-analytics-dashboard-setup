@@ -74,6 +74,8 @@ def index():
     
     if scheme == 'http' and host[:9] not in ('localhost', '127.0.0.1'):
         return redirect('https://dashboard-setup.codeforamerica.org')
+    
+    print >> sys.stderr, 'GET', '/', get_style_base(request)
 
     return render_template('index.html', style_base=get_style_base(request))
 
