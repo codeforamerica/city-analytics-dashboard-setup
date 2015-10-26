@@ -210,6 +210,7 @@ def callback_heroku():
                     client_secret=client_secret, redirect_uri='')
     
         response = post(heroku_access_token_url, data=data)
+        print >> sys.stderr, 'GET', '/callback-heroku', response.json()
         access = response.json()
     
         if response.status_code != 200:
@@ -312,6 +313,9 @@ def google_client_info(request):
     if (scheme, host) == ('http', 'localhost:5000'):
         id, secret = "422651909980-7stoc5hn9nfrv9l9otrnf8tjei0lm68q.apps.googleusercontent.com", "qZ511l73AqF0K8sX6g2wSTMG"
 
+    elif (scheme, host) == ('https', 'p1510.s.codeforamerica.org'):
+        id, secret = "422651909980-knbfgd83krqiom0f28857d2o36hje8nk.apps.googleusercontent.com", "FADu5Ds5ZkcnwdM1mHn6jp1M"
+
     elif (scheme, host) == ('https', 'dashboard-setup.codeforamerica.org'):
         id, secret = "422651909980-fpg37u85pf1rnn8jselp8cl7fhibims8.apps.googleusercontent.com", "QAxrxk21Y4zT0MLkJ99HzUYj"
 
@@ -333,6 +337,9 @@ def heroku_client_info(request):
     
     if (scheme, host) == ('http', 'localhost:5000'):
         id, secret = "e46e254a-d99e-47c1-83bd-f9bc9854d467", "8cfd15f1-89b6-4516-9650-ce6650c78b4c"
+
+    elif (scheme, host) == ('https', 'p1510.s.codeforamerica.org'):
+        id, secret = "560b2e3e-bdf1-4e24-9373-e0a0b5b3474d", "bb8cec74-8398-4077-acda-a891b76df398"
 
     elif (scheme, host) == ('https', 'dashboard-setup.codeforamerica.org'):
         id, secret = "abc6f200-db5f-4845-9b4f-80fa6e892bc1", "263257ea-4d1f-42b2-8329-85dc7004aeda"
@@ -387,14 +394,18 @@ def create_app(access_token, source_url):
                'Accept': 'application/vnd.heroku+json; version=3'}
 
     posted = client.post(heroku_app_setup_url, headers=headers, data=data)
+    print >> sys.stderr, 'create_app()', 'posted:', posted.status_code, posted.json()
+
     setup_id = posted.json()['id']
     app_name = posted.json()['app']['name']
-
+    
     while True:
         sleep(1)
         gotten = client.get(heroku_app_setups_template.format(setup_id), headers=headers)
         setup = gotten.json()
     
+        print >> sys.stderr, 'create_app()', 'gotten:', gotten.status_code, gotten.json()
+
         if setup['status'] == 'failed':
             raise SetupError('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
 
