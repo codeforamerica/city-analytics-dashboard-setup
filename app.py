@@ -65,7 +65,9 @@ if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
 def on_setuperror(error):
     '''
     '''
-    return 'Bad stuff happened: ' + repr(error)
+    logger.error('City Analytics Dashboard - Heroku error', exc_info=True)
+    values = dict(style_base=get_style_base(request), message=error.message)
+    return make_response(render_template('error.html', **values), 400)
 
 @app.route("/")
 def index():
@@ -223,8 +225,14 @@ def callback_heroku():
                 raise SetupError('Heroku Error')
     
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar_id)
-        builders.create_app(access['access_token'], url)
+        setup_id, app_name = builders.create_app(builders.get_http_client(), access['access_token'], url)
         
+        with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+            with connection.cursor() as cursor:
+                builders.set_connection_datum(cursor, tar_id, 'app_name', app_name)
+                builders.set_connection_datum(cursor, tar_id, 'app_setup_id', setup_id)
+                builders.set_connection_datum(cursor, tar_id, 'access_token', access['access_token'])
+
         wait_url = '{0}://{1}/{2}/wait-for-heroku'.format(get_scheme(request), request.host, tar_id)
         return redirect(wait_url)
         
@@ -244,7 +252,32 @@ def callback_heroku():
 def wait_for_heroku(conn_id):
     '''
     '''
-    return 'Here comes {conn_id}'.format(**locals())
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            app_setup_id = builders.get_connection_datum(cursor, conn_id, 'app_setup_id')
+            access_token = builders.get_connection_datum(cursor, conn_id, 'access_token')
+    
+    finished = builders.check_app(builders.get_http_client(), access_token, app_setup_id)
+    
+    if not finished:
+        return render_template('wait.html', style_base=get_style_base(request),
+                               url=request.path)
+    
+    finished_url = '{0}://{1}/{2}/finished'.format(get_scheme(request), request.host, conn_id)
+    return redirect(finished_url)
+
+@app.route('/<int:conn_id>/finished')
+def heroku_complete(conn_id):
+    '''
+    '''
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            app_name = builders.get_connection_datum(cursor, conn_id, 'app_name')
+
+    return render_template('done.html', style_base=get_style_base(request),
+                           settings_url=builders.heroku_app_activity_template.format(app_name),
+                           application_url=builders.heroku_app_direct_template.format(app_name),
+                           app_name=app_name)
 
 def get_scheme(request):
     ''' Get the current URL scheme, e.g. 'http' or 'https'.
@@ -391,40 +424,6 @@ def prepare_tarball(url, app):
         rmtree(dirpath)
     
     return tarpath
-
-def create_app(access_token, source_url):
-    ''' Create a Heroku application based on a tarball URL, return its name.
-    '''
-    client = Session()
-    client.trust_env = False # https://github.com/kennethreitz/requests/issues/2066
-    
-    app = {'stack': 'cedar', 'name': 'city-analytics-{}'.format(str(uuid4())[:8])}
-    data = json.dumps({'source_blob': {'url': source_url}, 'app': app});
-
-    headers = {'Content-Type': 'application/json',
-               'Authorization': 'Bearer {0}'.format(access_token),
-               'Accept': 'application/vnd.heroku+json; version=3'}
-
-    posted = client.post(builders.heroku_app_setup_url, headers=headers, data=data)
-    print >> sys.stderr, 'create_app()', 'posted:', posted.status_code, posted.json()
-
-    setup_id = posted.json()['id']
-    app_name = posted.json()['app']['name']
-    
-    while True:
-        sleep(1)
-        gotten = client.get(builders.heroku_app_setups_template.format(setup_id), headers=headers)
-        setup = gotten.json()
-    
-        print >> sys.stderr, 'create_app()', 'gotten:', gotten.status_code, gotten.json()
-
-        if setup['status'] == 'failed':
-            raise SetupError('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
-
-        if (setup['build'] or {}).get('id') is not None:
-            break
-
-    return app_name
 
 if __name__ == '__main__':
     if sys.argv[-1] == 'ssl':
