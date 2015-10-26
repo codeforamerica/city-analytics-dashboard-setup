@@ -20,6 +20,8 @@ from requests import get, post, Session
 from flask.ext.heroku import Heroku
 import oauth2, psycopg2
 
+import builders
+
 display_screen_tarball_url = 'https://github.com/codeforamerica/city-analytics-dashboard/tarball/1.x/'
 
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
@@ -32,11 +34,6 @@ google_auth_scopes = 'email', 'https://www.googleapis.com/auth/analytics', 'http
 
 heroku_authorize_url = 'https://id.heroku.com/oauth/authorize'
 heroku_access_token_url = 'https://id.heroku.com/oauth/token'
-
-heroku_app_setup_url = 'https://api.heroku.com/app-setups'
-heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
-heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
-heroku_app_direct_template = 'https://{0}.herokuapp.com'
 
 class SetupError (Exception):
     pass
@@ -63,6 +60,12 @@ if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
 
     handler.setLevel(logging.WARNING)
     logger.addHandler(handler)
+
+@app.errorhandler(builders.SetupError)
+def on_setuperror(error):
+    '''
+    '''
+    return 'Bad stuff happened: ' + repr(error)
 
 @app.route("/")
 def index():
@@ -220,19 +223,28 @@ def callback_heroku():
                 raise SetupError('Heroku Error')
     
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar_id)
-        app_name = create_app(access['access_token'], url)
+        builders.create_app(access['access_token'], url)
+        
+        wait_url = '{0}://{1}/{2}/wait-for-heroku'.format(get_scheme(request), request.host, tar_id)
+        return redirect(wait_url)
         
         return render_template('done.html', style_base=get_style_base(request),
-                               settings_url=heroku_app_activity_template.format(app_name),
-                               application_url=heroku_app_direct_template.format(app_name),
+                               settings_url=builders.heroku_app_activity_template.format(app_name),
+                               application_url=builders.heroku_app_direct_template.format(app_name),
                                app_name=app_name)
     
-        return redirect(heroku_app_activity_template.format(app_name))
+        return redirect(builders.heroku_app_activity_template.format(app_name))
     
     except SetupError, e:
         logger.error('City Analytics Dashboard - Heroku error', exc_info=True)
         values = dict(style_base=get_style_base(request), message=e.message)
         return make_response(render_template('error.html', **values), 400)
+
+@app.route('/<int:conn_id>/wait-for-heroku')
+def wait_for_heroku(conn_id):
+    '''
+    '''
+    return 'Here comes {conn_id}'.format(**locals())
 
 def get_scheme(request):
     ''' Get the current URL scheme, e.g. 'http' or 'https'.
@@ -393,7 +405,7 @@ def create_app(access_token, source_url):
                'Authorization': 'Bearer {0}'.format(access_token),
                'Accept': 'application/vnd.heroku+json; version=3'}
 
-    posted = client.post(heroku_app_setup_url, headers=headers, data=data)
+    posted = client.post(builders.heroku_app_setup_url, headers=headers, data=data)
     print >> sys.stderr, 'create_app()', 'posted:', posted.status_code, posted.json()
 
     setup_id = posted.json()['id']
@@ -401,7 +413,7 @@ def create_app(access_token, source_url):
     
     while True:
         sleep(1)
-        gotten = client.get(heroku_app_setups_template.format(setup_id), headers=headers)
+        gotten = client.get(builders.heroku_app_setups_template.format(setup_id), headers=headers)
         setup = gotten.json()
     
         print >> sys.stderr, 'create_app()', 'gotten:', gotten.status_code, gotten.json()
