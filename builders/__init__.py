@@ -34,7 +34,8 @@ def create_app(client, access_token, source_url):
     print >> sys.stderr, 'create_app()', 'posted:', posted.status_code, posted.json()
     
     if posted.status_code in range(400, 499):
-        raise SetupError(posted.json().get('message', posted.text))
+        message = 'Heroku says: {}'.format(posted.json().get('message', posted.text))
+        raise SetupError(message)
 
     setup_id = posted.json()['id']
     app_name = posted.json()['app']['name']
