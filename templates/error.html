@@ -50,14 +50,18 @@
 	    <main id="content" class="layout-major">
 		    <section>
 
-		        <h2>Oh noes! Something isn’t quite right!</h2>
+		        <h2>Something isn’t quite right!</h2>
 		        <div class="alert-failure">
 		            <p>{{ message }}</p>
-		            <p>
-		                You should try starting again from <a href="/">step one</a>.
-		                If you keep seeing this error, send us an email and include
-		                the address of this page: <em>tech@codeforamerica.org</em>.
-                    </p>
+		            {% if 'limit of 5 apps for unverified accounts' in message %}
+		                <p>Return to <a href="/">step one</a> and start again.</p>
+		            {% else %}
+                        <p>
+                            You should try starting again from <a href="/">step one</a>.
+                            If you keep seeing this error, send us an email and include
+                            the address of this page: <em>tech@codeforamerica.org</em>.
+                        </p>
+		            {% endif %}
 		        </div>
 
 		    </section>

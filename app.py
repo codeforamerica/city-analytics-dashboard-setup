@@ -20,6 +20,8 @@ from requests import get, post, Session
 from flask.ext.heroku import Heroku
 import oauth2, psycopg2
 
+import builders
+
 display_screen_tarball_url = 'https://github.com/codeforamerica/city-analytics-dashboard/tarball/1.x/'
 
 google_authorize_url = 'https://accounts.google.com/o/oauth2/auth'
@@ -33,11 +35,6 @@ google_auth_scopes = 'email', 'https://www.googleapis.com/auth/analytics', 'http
 heroku_authorize_url = 'https://id.heroku.com/oauth/authorize'
 heroku_access_token_url = 'https://id.heroku.com/oauth/token'
 
-heroku_app_setup_url = 'https://api.heroku.com/app-setups'
-heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
-heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
-heroku_app_direct_template = 'https://{0}.herokuapp.com'
-
 class SetupError (Exception):
     pass
 
@@ -49,6 +46,11 @@ app.config['EMAIL_RECIPIENT'] = 'analytics-dashboard@codeforamerica.org'
 app.config['EMAIL_SENDER'] = 'mike@codeforamerica.org'
 
 logger = logging.getLogger('noteworthy')
+logger.setLevel(logging.DEBUG)
+
+handler1 = logging.StreamHandler(sys.stderr)
+handler1.setLevel(logging.DEBUG)
+logger.addHandler(handler1)
 
 if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
     app.config['SMTP_USERNAME'] = environ['SENDGRID_USERNAME']
@@ -56,13 +58,21 @@ if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
     app.config['SMTP_HOSTNAME'] = 'smtp.sendgrid.net'
     app.config['SEND_EMAIL'] = True
     
-    handler = SMTPHandler(app.config['SMTP_HOSTNAME'], app.config['EMAIL_SENDER'],
-                          (app.config['EMAIL_RECIPIENT'], app.config['EMAIL_SENDER']),
-                          'City Analytics Dashboard error report',
-                          (app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD']))
+    handler2 = SMTPHandler(app.config['SMTP_HOSTNAME'], app.config['EMAIL_SENDER'],
+                           (app.config['EMAIL_RECIPIENT'], app.config['EMAIL_SENDER']),
+                           'City Analytics Dashboard error report',
+                           (app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD']))
 
-    handler.setLevel(logging.WARNING)
-    logger.addHandler(handler)
+    handler2.setLevel(logging.WARNING)
+    logger.addHandler(handler2)
+
+@app.errorhandler(builders.SetupError)
+def on_setuperror(error):
+    '''
+    '''
+    logger.error('City Analytics Dashboard - Heroku error', exc_info=True)
+    values = dict(style_base=get_style_base(request), message=error.message)
+    return make_response(render_template('error.html', **values), 400)
 
 @app.route("/")
 def index():
@@ -74,6 +84,8 @@ def index():
     
     if scheme == 'http' and host[:9] not in ('localhost', '127.0.0.1'):
         return redirect('https://dashboard-setup.codeforamerica.org')
+    
+    logger.debug('GET / {}'.format(get_style_base(request)))
 
     return render_template('index.html', style_base=get_style_base(request))
 
@@ -88,6 +100,8 @@ def authorize_google():
                                   state=str(uuid4()), response_type='code',
                                   access_type='offline', approval_prompt='force'))
     
+    logger.debug('POST /authorize-google redirect {}?{}'.format(google_authorize_url, query_string))
+
     return redirect(google_authorize_url + '?' + query_string)
 
 @app.route('/callback-google')
@@ -101,6 +115,8 @@ def callback_google():
                 code=code, redirect_uri=redirect_uri,
                 grant_type='authorization_code')
     
+    logger.debug('GET /callback-google {}'.format(data))
+
     try:
         access = get_google_access_token(data)
         access_token, refresh_token = access['access_token'], access['refresh_token']
@@ -120,6 +136,8 @@ def callback_google():
                   refresh_token=refresh_token, properties=properties,
                   style_base=get_style_base(request), name=name, email=email)
     
+    logger.debug('GET /callback-google {}'.format(values))
+
     return render_template('index.html', **values)
 
 @app.route('/prepare-app', methods=['POST'])
@@ -172,6 +190,8 @@ def prepare_app():
                                   response_type='code', scope='global',
                                   state=str(tarball_id)))
     
+    logger.debug('POST /prepare-app redirect {}?{}'.format(heroku_authorize_url, query_string))
+    
     return redirect(heroku_authorize_url + '?' + query_string)
 
 @app.route('/tarball/<int:tarball_id>')
@@ -200,6 +220,7 @@ def callback_heroku():
                     client_secret=client_secret, redirect_uri='')
     
         response = post(heroku_access_token_url, data=data)
+        logger.debug('GET /callback-heroku {}'.format(response.json()))
         access = response.json()
     
         if response.status_code != 200:
@@ -209,19 +230,59 @@ def callback_heroku():
                 raise SetupError('Heroku Error')
     
         url = '{0}://{1}/tarball/{2}'.format(get_scheme(request), request.host, tar_id)
-        app_name = create_app(access['access_token'], url)
+        setup_id, app_name = builders.create_app(builders.get_http_client(), access['access_token'], url)
+        
+        with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+            with connection.cursor() as cursor:
+                builders.set_connection_datum(cursor, tar_id, 'app_name', app_name)
+                builders.set_connection_datum(cursor, tar_id, 'app_setup_id', setup_id)
+                builders.set_connection_datum(cursor, tar_id, 'access_token', access['access_token'])
+
+        wait_url = '{0}://{1}/{2}/wait-for-heroku'.format(get_scheme(request), request.host, tar_id)
+        return redirect(wait_url)
         
         return render_template('done.html', style_base=get_style_base(request),
-                               settings_url=heroku_app_activity_template.format(app_name),
-                               application_url=heroku_app_direct_template.format(app_name),
+                               settings_url=builders.heroku_app_activity_template.format(app_name),
+                               application_url=builders.heroku_app_direct_template.format(app_name),
                                app_name=app_name)
     
-        return redirect(heroku_app_activity_template.format(app_name))
+        return redirect(builders.heroku_app_activity_template.format(app_name))
     
     except SetupError, e:
         logger.error('City Analytics Dashboard - Heroku error', exc_info=True)
         values = dict(style_base=get_style_base(request), message=e.message)
         return make_response(render_template('error.html', **values), 400)
+
+@app.route('/<int:conn_id>/wait-for-heroku')
+def wait_for_heroku(conn_id):
+    '''
+    '''
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            app_setup_id = builders.get_connection_datum(cursor, conn_id, 'app_setup_id')
+            access_token = builders.get_connection_datum(cursor, conn_id, 'access_token')
+    
+    finished = builders.check_app(builders.get_http_client(), access_token, app_setup_id)
+    
+    if not finished:
+        return render_template('wait.html', style_base=get_style_base(request),
+                               url=request.path)
+    
+    finished_url = '{0}://{1}/{2}/finished'.format(get_scheme(request), request.host, conn_id)
+    return redirect(finished_url)
+
+@app.route('/<int:conn_id>/finished')
+def heroku_complete(conn_id):
+    '''
+    '''
+    with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
+        with connection.cursor() as cursor:
+            app_name = builders.get_connection_datum(cursor, conn_id, 'app_name')
+
+    return render_template('done.html', style_base=get_style_base(request),
+                           settings_url=builders.heroku_app_activity_template.format(app_name),
+                           application_url=builders.heroku_app_direct_template.format(app_name),
+                           app_name=app_name)
 
 def get_scheme(request):
     ''' Get the current URL scheme, e.g. 'http' or 'https'.
@@ -244,6 +305,8 @@ def get_google_access_token(data):
     '''
     response = post(google_access_token_url, data=data)
     access = response.json()
+
+    logger.debug('get_google_access_token(): {} {}'.format(response.status_code, access))
 
     if response.status_code != 200:
         if 'error_description' in access:
@@ -300,6 +363,9 @@ def google_client_info(request):
     if (scheme, host) == ('http', 'localhost:5000'):
         id, secret = "422651909980-7stoc5hn9nfrv9l9otrnf8tjei0lm68q.apps.googleusercontent.com", "qZ511l73AqF0K8sX6g2wSTMG"
 
+    elif (scheme, host) == ('https', 'p1510.s.codeforamerica.org'):
+        id, secret = "422651909980-knbfgd83krqiom0f28857d2o36hje8nk.apps.googleusercontent.com", "FADu5Ds5ZkcnwdM1mHn6jp1M"
+
     elif (scheme, host) == ('https', 'dashboard-setup.codeforamerica.org'):
         id, secret = "422651909980-fpg37u85pf1rnn8jselp8cl7fhibims8.apps.googleusercontent.com", "QAxrxk21Y4zT0MLkJ99HzUYj"
 
@@ -321,6 +387,9 @@ def heroku_client_info(request):
     
     if (scheme, host) == ('http', 'localhost:5000'):
         id, secret = "e46e254a-d99e-47c1-83bd-f9bc9854d467", "8cfd15f1-89b6-4516-9650-ce6650c78b4c"
+
+    elif (scheme, host) == ('https', 'p1510.s.codeforamerica.org'):
+        id, secret = "560b2e3e-bdf1-4e24-9373-e0a0b5b3474d", "bb8cec74-8398-4077-acda-a891b76df398"
 
     elif (scheme, host) == ('https', 'dashboard-setup.codeforamerica.org'):
         id, secret = "abc6f200-db5f-4845-9b4f-80fa6e892bc1", "263257ea-4d1f-42b2-8329-85dc7004aeda"
@@ -360,36 +429,6 @@ def prepare_tarball(url, app):
         rmtree(dirpath)
     
     return tarpath
-
-def create_app(access_token, source_url):
-    ''' Create a Heroku application based on a tarball URL, return its name.
-    '''
-    client = Session()
-    client.trust_env = False # https://github.com/kennethreitz/requests/issues/2066
-    
-    app = {'stack': 'cedar', 'name': 'city-analytics-{}'.format(str(uuid4())[:8])}
-    data = json.dumps({'source_blob': {'url': source_url}, 'app': app});
-
-    headers = {'Content-Type': 'application/json',
-               'Authorization': 'Bearer {0}'.format(access_token),
-               'Accept': 'application/vnd.heroku+json; version=3'}
-
-    posted = client.post(heroku_app_setup_url, headers=headers, data=data)
-    setup_id = posted.json()['id']
-    app_name = posted.json()['app']['name']
-
-    while True:
-        sleep(1)
-        gotten = client.get(heroku_app_setups_template.format(setup_id), headers=headers)
-        setup = gotten.json()
-    
-        if setup['status'] == 'failed':
-            raise SetupError('Heroku failed to build from {0}, saying "{1}"'.format(source_url, setup['failure_message']))
-
-        if (setup['build'] or {}).get('id') is not None:
-            break
-
-    return app_name
 
 if __name__ == '__main__':
     if sys.argv[-1] == 'ssl':

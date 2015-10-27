@@ -18,3 +18,7 @@ CREATE TABLE tarballs
     contents    BYTEA,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+--
+
+ALTER TABLE connections ADD COLUMN data JSON DEFAULT '{}'::JSON;
