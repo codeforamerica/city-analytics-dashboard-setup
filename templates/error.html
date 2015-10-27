@@ -54,11 +54,7 @@
 		        <div class="alert-failure">
 		            <p>{{ message }}</p>
 		            {% if 'limit of 5 apps for unverified accounts' in message %}
-		                <p><strong>What you should do now:</strong></p>
-		                <ol>
-		                    <li>Log into your Heroku account and delete an app, or add a credit card to verify your account.</li>
-		                    <li>Return to <a href="/">step one</a> and start again.</li>
-		                </ol>
+		                <p>Return to <a href="/">step one</a> and start again.</p>
 		            {% else %}
                         <p>
                             You should try starting again from <a href="/">step one</a>.
