@@ -46,6 +46,11 @@ app.config['EMAIL_RECIPIENT'] = 'analytics-dashboard@codeforamerica.org'
 app.config['EMAIL_SENDER'] = 'mike@codeforamerica.org'
 
 logger = logging.getLogger('noteworthy')
+logger.setLevel(logging.DEBUG)
+
+handler1 = logging.StreamHandler(sys.stderr)
+handler1.setLevel(logging.DEBUG)
+logger.addHandler(handler1)
 
 if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
     app.config['SMTP_USERNAME'] = environ['SENDGRID_USERNAME']
@@ -53,13 +58,13 @@ if 'SENDGRID_USERNAME' in environ and 'SENDGRID_PASSWORD' in environ:
     app.config['SMTP_HOSTNAME'] = 'smtp.sendgrid.net'
     app.config['SEND_EMAIL'] = True
     
-    handler = SMTPHandler(app.config['SMTP_HOSTNAME'], app.config['EMAIL_SENDER'],
-                          (app.config['EMAIL_RECIPIENT'], app.config['EMAIL_SENDER']),
-                          'City Analytics Dashboard error report',
-                          (app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD']))
+    handler2 = SMTPHandler(app.config['SMTP_HOSTNAME'], app.config['EMAIL_SENDER'],
+                           (app.config['EMAIL_RECIPIENT'], app.config['EMAIL_SENDER']),
+                           'City Analytics Dashboard error report',
+                           (app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD']))
 
-    handler.setLevel(logging.WARNING)
-    logger.addHandler(handler)
+    handler2.setLevel(logging.WARNING)
+    logger.addHandler(handler2)
 
 @app.errorhandler(builders.SetupError)
 def on_setuperror(error):
@@ -80,7 +85,7 @@ def index():
     if scheme == 'http' and host[:9] not in ('localhost', '127.0.0.1'):
         return redirect('https://dashboard-setup.codeforamerica.org')
     
-    print >> sys.stderr, 'GET', '/', get_style_base(request)
+    logger.debug('GET / {}'.format(get_style_base(request)))
 
     return render_template('index.html', style_base=get_style_base(request))
 
@@ -95,7 +100,7 @@ def authorize_google():
                                   state=str(uuid4()), response_type='code',
                                   access_type='offline', approval_prompt='force'))
     
-    print >> sys.stderr, 'POST', '/authorize-google', 'redirect', google_authorize_url + '?' + query_string
+    logger.debug('POST /authorize-google redirect {}?{}'.format(google_authorize_url, query_string))
 
     return redirect(google_authorize_url + '?' + query_string)
 
@@ -110,7 +115,7 @@ def callback_google():
                 code=code, redirect_uri=redirect_uri,
                 grant_type='authorization_code')
     
-    print >> sys.stderr, 'GET', '/callback-google', data
+    logger.debug('GET /callback-google {}'.format(data))
 
     try:
         access = get_google_access_token(data)
@@ -131,7 +136,7 @@ def callback_google():
                   refresh_token=refresh_token, properties=properties,
                   style_base=get_style_base(request), name=name, email=email)
     
-    print >> sys.stderr, 'GET', '/callback-google', values
+    logger.debug('GET /callback-google {}'.format(values))
 
     return render_template('index.html', **values)
 
@@ -185,7 +190,7 @@ def prepare_app():
                                   response_type='code', scope='global',
                                   state=str(tarball_id)))
     
-    print >> sys.stderr, 'POST', '/prepare-app', 'redirect', heroku_authorize_url + '?' + query_string
+    logger.debug('POST /prepare-app redirect {}?{}'.format(heroku_authorize_url, query_string))
     
     return redirect(heroku_authorize_url + '?' + query_string)
 
@@ -215,7 +220,7 @@ def callback_heroku():
                     client_secret=client_secret, redirect_uri='')
     
         response = post(heroku_access_token_url, data=data)
-        print >> sys.stderr, 'GET', '/callback-heroku', response.json()
+        logger.debug('GET /callback-heroku {}'.format(response.json()))
         access = response.json()
     
         if response.status_code != 200:
@@ -301,7 +306,7 @@ def get_google_access_token(data):
     response = post(google_access_token_url, data=data)
     access = response.json()
 
-    print >> sys.stderr, 'get_google_access_token():', response.status_code, access
+    logger.debug('get_google_access_token(): {} {}'.format(response.status_code, access))
 
     if response.status_code != 200:
         if 'error_description' in access:

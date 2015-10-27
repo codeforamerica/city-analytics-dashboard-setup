@@ -1,4 +1,4 @@
-import sys, json
+import sys, json, logging
 from uuid import uuid4
 
 from requests import get, post, Session
@@ -8,6 +8,8 @@ heroku_app_setup_url = 'https://api.heroku.com/app-setups'
 heroku_app_setups_template = 'https://api.heroku.com/app-setups/{0}'
 heroku_app_activity_template = 'https://dashboard.heroku.com/apps/{0}/activity'
 heroku_app_direct_template = 'https://{0}.herokuapp.com'
+
+logger = logging.getLogger('noteworthy')
 
 class SetupError (Exception):
     pass
@@ -31,7 +33,7 @@ def create_app(client, access_token, source_url):
                'Accept': 'application/vnd.heroku+json; version=3'}
 
     posted = client.post(heroku_app_setup_url, headers=headers, data=data)
-    print >> sys.stderr, 'create_app()', 'posted:', posted.status_code, posted.json()
+    logger.debug('create_app() posted: {} {}'.format(posted.status_code, posted.json()))
     
     if posted.status_code in range(400, 499):
         message = 'Heroku says: {}'.format(posted.json().get('message', posted.text))
@@ -52,14 +54,14 @@ def check_app(client, access_token, setup_id):
     gotten = client.get(heroku_app_setups_template.format(setup_id), headers=headers)
     setup = gotten.json()
     
-    print >> sys.stderr, 'check_app()', 'gotten:', gotten.status_code, gotten.json()
+    logger.debug('check_app() gotten: {} {}'.format(gotten.status_code, gotten.json()))
 
     if setup['status'] == 'failed':
         raise SetupError('Heroku failed to build {0}, saying "{1}"'.format(setup_id, setup['failure_message']))
 
     is_finished = bool((setup['build'] or {}).get('id') is not None)
 
-    print >> sys.stderr, 'check_app()', 'is_finished:', is_finished
+    logger.debug('check_app() is_finished: {}'.format(is_finished))
     
     return is_finished
 
