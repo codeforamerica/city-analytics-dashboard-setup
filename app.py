@@ -10,7 +10,6 @@ from tempfile import mkdtemp
 from os.path import commonprefix, join, isdir, exists, basename
 from shutil import make_archive, rmtree
 from os import environ
-from smtplib import SMTP
 
 import logging
 from logging.handlers import SMTPHandler
@@ -160,29 +159,10 @@ def prepare_app():
     
     with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as connection:
         with connection.cursor() as cursor:
-            cursor.execute('''INSERT INTO connections
-                              (email_address, profile_name, website_url) 
-                              VALUES (%s, %s, %s)''',
-                           (email, name, website_url))
-    
-            cursor.execute("SELECT CURRVAL('connections_id_seq')")
-            (tarball_id, ) = cursor.fetchone()
-
-            cursor.execute('INSERT INTO tarballs (id, contents) VALUES (%s, %s)',
-                           (tarball_id, buffer(open(tarpath).read())))
-            
-            try:
-                if app.config['SEND_EMAIL']:
-                    fromaddr = app.config['EMAIL_SENDER']
-                    toaddr = app.config['EMAIL_RECIPIENT']
-                    msg = 'From: {fromaddr}\r\nTo: {toaddr}\r\nCc: {fromaddr}\r\nSubject: City Analytics Dashboard got used\r\n\r\n{name} {email} for {website_url}.'.format(**locals())
-
-                    conn = SMTP(app.config['SMTP_HOSTNAME'])
-                    conn.login(app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD'])
-                    conn.sendmail(fromaddr, (fromaddr, toaddr), msg)
-                    conn.quit()
-            except:
-                logger.error('City Analytics Dashboard - SMTP error', exc_info=True)
+            tarball_id = builders.add_connection(cursor, email, name, website_url, tarpath)
+            builders.set_connection_datum(cursor, tarball_id, 'google name', name)
+            builders.set_connection_datum(cursor, tarball_id, 'google email', email)
+            builders.set_connection_datum(cursor, tarball_id, 'google url', website_url)
     
     client_id, _, redirect_uri = heroku_client_info(request)
     
@@ -237,6 +217,17 @@ def callback_heroku():
                 builders.set_connection_datum(cursor, tar_id, 'app_name', app_name)
                 builders.set_connection_datum(cursor, tar_id, 'app_setup_id', setup_id)
                 builders.set_connection_datum(cursor, tar_id, 'access_token', access['access_token'])
+                google_name = builders.get_connection_datum(cursor, tar_id, 'google name')
+                google_email = builders.get_connection_datum(cursor, tar_id, 'google email')
+                google_url = builders.get_connection_datum(cursor, tar_id, 'google url')
+        
+        try:
+            if app.config['SEND_EMAIL']:
+                fromaddr, toaddr = app.config['EMAIL_SENDER'], app.config['EMAIL_RECIPIENT']
+                msg = 'From: {fromaddr}\r\nTo: {toaddr}\r\nCc: {fromaddr}\r\nSubject: City Analytics Dashboard got used\r\n\r\n{google_name} {google_email} at https://{app_name}.herokuapp.com for {google_url}.'.format(**locals())
+                builders.send_email(fromaddr, toaddr, msg, app.config)
+        except:
+            logger.error('City Analytics Dashboard - SMTP error', exc_info=True)
 
         wait_url = '{0}://{1}/{2}/wait-for-heroku'.format(get_scheme(request), request.host, tar_id)
         return redirect(wait_url)

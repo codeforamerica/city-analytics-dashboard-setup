@@ -1,4 +1,5 @@
 import sys, json, logging
+from smtplib import SMTP
 from uuid import uuid4
 
 from requests import get, post, Session
@@ -85,3 +86,27 @@ def set_connection_datum(db, conn_id, key, value):
 
     db.execute('UPDATE connections SET data = %s WHERE id = %s',
                (psycopg2.extras.Json(new_conn_data), conn_id))
+
+def add_connection(db, email, name, website_url, tarball_path):
+    '''
+    '''
+    db.execute('''INSERT INTO connections
+                  (email_address, profile_name, website_url) 
+                  VALUES (%s, %s, %s)''',
+               (email, name, website_url))
+
+    db.execute("SELECT CURRVAL('connections_id_seq')")
+    (tarball_id, ) = db.fetchone()
+
+    db.execute('INSERT INTO tarballs (id, contents) VALUES (%s, %s)',
+               (tarball_id, buffer(open(tarball_path).read())))
+    
+    return tarball_id
+
+def send_email(fromaddr, toaddr, msg, smtp_dict):
+    '''
+    '''
+    conn = SMTP(smtp_dict['SMTP_HOSTNAME'])
+    conn.login(smtp_dict['SMTP_USERNAME'], smtp_dict['SMTP_PASSWORD'])
+    conn.sendmail(fromaddr, (fromaddr, toaddr), msg)
+    conn.quit()
